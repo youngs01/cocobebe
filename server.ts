@@ -101,7 +101,7 @@ if (usePostgres && pool) {
       reason TEXT,
       processed_by TEXT,
       processed_at TEXT,
-      FOREIGN KEY (teacher_id) REFERENCES teachers(id)
+      FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS notifications (
@@ -110,7 +110,7 @@ if (usePostgres && pool) {
       message TEXT NOT NULL,
       is_read INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES teachers(id)
+      FOREIGN KEY (user_id) REFERENCES teachers(id) ON DELETE CASCADE
     );
   `);
 
@@ -367,11 +367,15 @@ async function startServer() {
       }
 
       if (supabase) {
+        // Delete notifications first, then leave_requests, then teacher
+        await supabase.from('notifications').delete().eq('user_id', id);
         await supabase.from('leave_requests').delete().eq('teacher_id', id);
         const { error } = await supabase.from('teachers').delete().eq('id', id);
         if (error) return res.status(500).json({ error: error.message });
         return res.json({ success: true });
       } else if (usePostgres && pool) {
+        // Delete notifications first, then leave_requests, then teacher
+        await pool.query('DELETE FROM notifications WHERE user_id = $1', [id]);
         await pool.query('DELETE FROM leave_requests WHERE teacher_id = $1', [id]);
         const result = await pool.query('DELETE FROM teachers WHERE id = $1', [id]);
         if (result.rowCount === 0) {
@@ -379,6 +383,8 @@ async function startServer() {
         }
         return res.json({ success: true });
       } else {
+        // SQLite: Delete notifications first, then leave_requests, then teacher
+        db.prepare("DELETE FROM notifications WHERE user_id = ?").run(id);
         db.prepare("DELETE FROM leave_requests WHERE teacher_id = ?").run(id);
         const teacherResult = db.prepare("DELETE FROM teachers WHERE id = ?").run(id);
         
@@ -388,6 +394,7 @@ async function startServer() {
         return res.json({ success: true });
       }
     } catch (error) {
+      console.error('Delete teacher error:', error);
       res.status(500).json({ error: 'Failed to delete teacher' });
     }
   });
