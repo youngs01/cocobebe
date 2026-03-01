@@ -35,6 +35,10 @@ import {
 } from 'recharts';
 import html2pdf from 'html2pdf.js';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+const apiFetch = (path: string, opts?: RequestInit) =>
+  fetch(`${API_BASE}${path}`, opts);
+
 const DocumentModal = ({ request, onClose, teachers }: { request: LeaveRequest; onClose: () => void; teachers: Teacher[] }) => {
   const teacher = teachers.find(t => t.id === request.teacher_id);
   const roleDisplay = (role?: string) => {
@@ -221,8 +225,8 @@ export default function App() {
   const fetchData = async () => {
     try {
       const [tRes, rRes] = await Promise.all([
-        fetch('/api/teachers'),
-        fetch('/api/leave-requests')
+        apiFetch('/api/teachers'),
+        apiFetch('/api/leave-requests')
       ]);
       
       if (!tRes.ok || !rRes.ok) {
@@ -242,7 +246,7 @@ export default function App() {
       setRequests(rData);
 
       if (user) {
-        const nRes = await fetch(`/api/notifications/${user.id}`);
+        const nRes = await apiFetch(`/api/notifications/${user.id}`);
         if (nRes.ok) {
           const nData = await nRes.json();
           setNotifications(nData);
@@ -254,13 +258,13 @@ export default function App() {
   };
 
   const markNotificationAsRead = async (id: number) => {
-    await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
+    await apiFetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
     fetchData();
   };
 
   const clearNotifications = async () => {
     if (!user) return;
-    await fetch(`/api/notifications/${user.id}`, { method: 'DELETE' });
+    await apiFetch(`/api/notifications/${user.id}`, { method: 'DELETE' });
     fetchData();
   };
 
@@ -278,7 +282,7 @@ export default function App() {
 
   const handleAddTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch('/api/teachers', {
+    const res = await apiFetch('/api/teachers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newTeacher)
@@ -292,7 +296,7 @@ export default function App() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const res = await fetch(`/api/teachers/${user.id}`, {
+    const res = await apiFetch(`/api/teachers/${user.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profileForm)
@@ -307,7 +311,7 @@ export default function App() {
 
   const handleDeleteTeacher = async (id: number) => {
     try {
-      const res = await fetch(`/api/teachers/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/teachers/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchData();
         setConfirmDeleteId(null);
@@ -323,7 +327,7 @@ export default function App() {
   const handleRequestLeave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const res = await fetch('/api/leave-requests', {
+    const res = await apiFetch('/api/leave-requests', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...newRequest, teacher_id: user.id })
@@ -337,7 +341,7 @@ export default function App() {
 
   const handleUpdateStatus = async (id: number, status: string) => {
     if (!user) return;
-    await fetch(`/api/leave-requests/${id}`, {
+    await apiFetch(`/api/leave-requests/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status, processed_by: user.name })
@@ -347,7 +351,7 @@ export default function App() {
 
   const handleDeleteRequest = async (id: number) => {
     try {
-      const res = await fetch(`/api/leave-requests/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`/api/leave-requests/${id}`, { method: 'DELETE' });
       if (res.ok) {
         fetchData();
         setConfirmDeleteRequestId(null);
@@ -362,7 +366,7 @@ export default function App() {
 
   const handleUpdateLeaveAdjustment = async (teacherId: number) => {
     try {
-      const res = await fetch(`/api/teachers/${teacherId}`, {
+      const res = await apiFetch(`/api/teachers/${teacherId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leave_adjustment: leaveAdjustmentValue })
