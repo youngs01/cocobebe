@@ -1138,6 +1138,8 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
+              {/* end desktop/table wrapper */}
+              </div>
             </motion.div>
           )}
 
