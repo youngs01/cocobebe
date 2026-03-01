@@ -16,13 +16,15 @@ View your app in AI Studio: https://ai.studio/apps/f18562f5-963d-4936-a279-a465d
    `npm install`
 2. Create a `.env.local` file with your configuration. Example:
    ```dotenv
-   GEMINI_API_KEY=""
-   APP_URL="http://localhost:3000"
-   ADMIN_NAME="admin"
-   ADMIN_PASSWORD="admin1234"
-   USE_POSTGRES="false"           # set true to use PostgreSQL
+   # basic values used by both front‑end and server
+   APP_URL="http://localhost:3000"          # used by login redirects
+   ADMIN_NAME="admin"                       # seeded admin user
+   ADMIN_PASSWORD="admin1234"               # seeded password
+
+   # database
    DATABASE_URL="postgresql://user:pass@host:5432/dbname"
-   # OR supply individual parts: DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_SSL
+   # Netlify will inject this for you; leave blank locally to use SQLite fallback.
+   # If your provider requires SSL, set DB_SSL=true
    ```
 3. Run the app:
    `npm run dev`
@@ -40,7 +42,6 @@ API and a static site for the React app.
    - **Functions directory:** `netlify/functions`
 4. Add environment variables under **Site settings → Build & deploy → Environment**:
    ```text
-   USE_POSTGRES=true
    DATABASE_URL=<your PostgreSQL connection string>
    DB_SSL=true        # if your provider requires SSL
    ADMIN_NAME=admin
@@ -65,6 +66,23 @@ netlify dev     # starts both functions and a dev server
 ```
 
 Migrations run automatically each time the function cold‑starts; the
-PostgreSQL database lives externally (e.g. Render Add‑on, ElephantSQL,
-Supabase). Netlify itself does not host the database.
+PostgreSQL database lives externally (e.g. Supabase, ElephantSQL, Render
+Add‑on). For local development the code will fall back to a file‑based
+SQLite database (`cocobebe.db`) when `DATABASE_URL` is not set.
+
+Once Netlify deployment succeeds you can verify the API with:
+
+```bash
+curl https://<your-netlify-site>.netlify.app/api/db-test
+curl https://<your-netlify-site>.netlify.app/api/teachers
+```
+
+And reset the administrator account with:
+
+```bash
+curl -X POST https://<your-netlify-site>.netlify.app/api/admin \
+  -H 'Content-Type: application/json' \
+  -d '{"name":"admin","password":"admin1234"}'
+```
+
 
