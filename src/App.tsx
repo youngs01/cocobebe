@@ -1293,6 +1293,10 @@ export default function App() {
             teachers={teachers}
           />
         )}
+        {/* footer showing author/creator */}
+        <footer className="text-center py-4 text-sm text-gray-500">
+          만든사람: 코코베베 어린이집
+        </footer>
       </main>
     </div>
   );
