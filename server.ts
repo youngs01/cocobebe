@@ -399,6 +399,28 @@ async function startServer() {
     }
   });
 
+  // reset teacher password (admin use)
+  app.post('/api/teachers/:id/reset-password', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const newPwd = req.body.password || '1234';
+      if (isNaN(id)) return res.status(400).json({ error: 'Invalid teacher ID' });
+
+      if (supabase) {
+        const { error } = await supabase.from('teachers').update({ password: newPwd }).eq('id', id);
+        if (error) return res.status(500).json({ error: error.message });
+      } else if (usePostgres && pool) {
+        await pool.query('UPDATE teachers SET password = $1 WHERE id = $2', [newPwd, id]);
+      } else {
+        db.prepare('UPDATE teachers SET password = ? WHERE id = ?').run(newPwd, id);
+      }
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('Reset password error:', err);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
   app.get('/api/leave-requests', async (req, res) => {
     try {
       if (supabase) {

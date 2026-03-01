@@ -362,6 +362,24 @@ export default function App() {
     }
   };
 
+  const handleResetPassword = async (id: number) => {
+    try {
+      const res = await apiFetch(`/api/teachers/${id}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: '1234' })
+      });
+      if (res.ok) {
+        alert('비밀번호가 초기화되었습니다. 기본값은 1234입니다.');
+      } else {
+        const data = await res.json();
+        alert(`초기화 실패: ${data.error || '알 수 없는 오류'}`);
+      }
+    } catch (err) {
+      alert('서버와 통신 중 오류가 발생했습니다.');
+    }
+  };
+
   const handleRequestLeave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -670,9 +688,16 @@ export default function App() {
             active={activeTab === 'profile'}
             onClick={() => setActiveTab('profile')}
           />
+          <button
+            onClick={() => { setUser(null); setIsLoginModalOpen(true); }}
+            className="flex flex-col items-center justify-center text-xs py-1 w-16 text-brand-500"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="mt-1">로그아웃</span>
+          </button>
         </div>
       </nav>
-      <main className="flex-1 overflow-y-auto p-8 print:p-0 pb-20 lg:pb-8">
+      <main className="flex-1 overflow-y-auto p-8 print:p-0 pb-40 lg:pb-8">
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
             <motion.div 
@@ -721,7 +746,8 @@ export default function App() {
 
               <div className="bg-white p-8 rounded-3xl shadow-sm border border-brand-200">
                 <h3 className="text-xl font-bold mb-6 text-brand-900">교사별 연차 현황</h3>
-                <div className="h-80 w-full min-w-0">
+                {/* desktop chart */}
+                <div className="hidden lg:block h-80 w-full min-w-0">
                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={320} debounce={100}>
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -734,6 +760,21 @@ export default function App() {
                       <Bar dataKey="remaining" name="잔여" fill="#e6d5c5" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
+                </div>
+                {/* mobile list */}
+                <div className="lg:hidden space-y-3">
+                  {chartData.map(t => (
+                    <div key={t.name} className="flex items-center">
+                      <span className="text-sm w-20 truncate">{t.name}</span>
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full mx-2 overflow-hidden">
+                        <div
+                          className="h-full bg-brand-500"
+                          style={{ width: `${t.total ? (t.remaining / t.total) * 100 : 0}%` }}
+                        />
+                      </div>
+                      <span className="text-xs w-12 text-right">{t.remaining}일</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </motion.div>
@@ -929,12 +970,23 @@ export default function App() {
                                           </button>
                                         </>
                                       ) : (
-                                        <button 
-                                          onClick={() => setConfirmDeleteId(t.id)}
-                                          className="p-2 text-brand-400 hover:text-red-500 transition-colors"
-                                        >
-                                          <Trash2 size={18} />
-                                        </button>
+                                        <>
+                                          {user?.role === 'admin' && (
+                                            <button 
+                                              onClick={() => handleResetPassword(t.id)}
+                                              className="p-2 text-yellow-500 hover:text-yellow-700 transition-colors"
+                                              title="비밀번호 초기화"
+                                            >
+                                              🔑
+                                            </button>
+                                          )}
+                                          <button 
+                                            onClick={() => setConfirmDeleteId(t.id)}
+                                            className="p-2 text-brand-400 hover:text-red-500 transition-colors"
+                                          >
+                                            <Trash2 size={18} />
+                                          </button>
+                                        </>
                                       )}
                                     </>
                                   )}
@@ -967,20 +1019,22 @@ export default function App() {
                 <p className="text-brand-500">교사들이 신청한 연차를 검토하고 승인합니다.</p>
               </header>
 
-              <div className="bg-white rounded-3xl shadow-sm border border-brand-200 overflow-hidden">
-                <table className="w-full text-left">
-                  <thead className="bg-brand-100">
-                    <tr>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">신청자</th>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">구분</th>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">기간</th>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">사유</th>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">상태</th>
-                      <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider text-right">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-brand-100">
-                    {requests.map(r => (
+              <div>
+                {/* Desktop table view */}
+                <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-brand-200 overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead className="bg-brand-100">
+                      <tr>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">신청자</th>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">구분</th>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">기간</th>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">사유</th>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider">상태</th>
+                        <th className="px-6 py-4 text-xs font-bold text-brand-500 uppercase tracking-wider text-right">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-brand-100">
+                      {requests.map(r => (
                       <tr key={r.id} className="hover:bg-brand-50 transition-colors">
                         <td className="px-6 py-4 font-bold text-brand-900">{r.teacher_name}</td>
                         <td className="px-6 py-4">
@@ -1362,7 +1416,7 @@ export default function App() {
         )}
         {/* footer showing author/creator */}
         <footer className="text-center py-4 text-sm text-gray-500">
-          만든사람: 코코베베 어린이집
+          코코베베 어린이집
         </footer>
       </main>
     </div>
