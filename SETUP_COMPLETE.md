@@ -4,7 +4,7 @@
 
 ### 백엔드 설정
 - ✅ **Express 서버** (`server.ts`)
-  - PostgreSQL (DATABASE_URL 환경변수) 또는 SQLite 자동 선택
+  - PostgreSQL 전용 (DATABASE_URL 환경변수 필수)
   - 모든 교직원/연차/알림 API 엔드포인트 구현
   - 관리자 계정 자동 초기화 (`admin/admin1234`)
   
@@ -13,8 +13,7 @@
   - 번들링 최적화 설정
   
 - ✅ **데이터베이스**
-  - SQLite 로컬 개발 (`cocobebe.db` 자동 생성)
-  - PostgreSQL 지원 (Supabase 권장)
+  - PostgreSQL 전용 (SQLite 제거)
   - 테이블 자동 생성: teachers, leave_requests, notifications
 
 ### 프론트엔드
@@ -31,7 +30,7 @@
 ### 문서
 - ✅ `QUICKSTART.md` - 빠른 시작 가이드
 - ✅ `DEPLOYMENT.md` - 상세 배포 가이드
-- ✅ `test-api.sh` - API 테스트 스크립트
+- ✅ 테스트 스크립트 제거 (프로덕션 준비 완료)
 
 ---
 
@@ -41,7 +40,7 @@
 ```bash
 cd c:\cocobebe
 git add .
-git commit -m "Complete Postgres/SQLite backend and Netlify setup"
+git commit -m "Complete Postgres backend and Netlify setup"
 git push origin main
 ```
 
@@ -51,7 +50,7 @@ git push origin main
 3. 배포 자동 시작
 
 ### 3. 환경변수 (선택사항)
-- **SQLite 사용 (기본)**: 아무것도 설정 안 함
+- **PostgreSQL 사용 필수**: `DATABASE_URL` 설정
 - **PostgreSQL 사용**: 
   - Netlify Site Settings → Environment
   - `DATABASE_URL` 추가 (Supabase 연결 문자열)
@@ -83,7 +82,8 @@ cocobebe/
 │   ├── main.tsx                # 진입점
 │   └── ...
 ├── dist/                       # 빌드된 프론트엔드
-├── cocobebe.db                 # SQLite 데이터베이스 (로컬)
+├── cocobebe.db                 # **(삭제됨)**
+
 ├── .env                        # 로컬 개발 환경변수
 ├── .env.example                # 환경변수 템플릿
 ├── QUICKSTART.md               # 빠른 시작
@@ -116,7 +116,6 @@ cocobebe/
 - `DELETE /api/notifications/:userId` - 전체 삭제
 
 ### 유틸리티
-- `GET /api/db-test` - 데이터베이스 연결 테스트
 - `POST /api/admin` - 관리자 계정 업데이트
 
 ---
@@ -124,8 +123,7 @@ cocobebe/
 ## 📝 주요 특징
 
 1. **자동 DB 선택**
-   - `DATABASE_URL` 환경변수 있음 → PostgreSQL (Supabase)
-   - 없음 → SQLite (cocobebe.db)
+   - 항상 PostgreSQL 사용 (`DATABASE_URL`필수)
 
 2. **자동 초기화**
    - 서버 시작 시 테이블 자동 생성
@@ -149,8 +147,6 @@ cocobebe/
 ### 로컬 서버 실행 안 됨
 → `npm install` 실행, `npm run start` 재시도
 
-### 로컬 데이터 초기화 필요
-→ `rm cocobebe.db`, `npm run start` (자동 재생성)
 
 ---
 

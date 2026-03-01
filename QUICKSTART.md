@@ -3,14 +3,16 @@
 ## 현재 완료된 작업 ✅
 
 ### 백엔드
-- ✅ Express 서버 (PostgreSQL + SQLite 자동 선택)
+- ✅ Express 서버 (PostgreSQL only)
+
 - ✅ Netlify Functions 호환 래퍼 작성
 - ✅ 모든 API 엔드포인트 구현
   - 교직원 관리 (CRUD)
   - 연차 관리 (신청, 승인, 거부)
   - 알림 시스템
   - 관리자 비밀번호 초기화
-- ✅ SQLite 데이터베이스 자동 초기화
+- ✅ PostgreSQL 데이터베이스 자동 초기화
+
 - ✅ 관리자 계정 자동 시드 (admin/admin1234)
 
 ### 프론트엔드
@@ -34,7 +36,7 @@ git status
 
 # 커밋 및 푸시
 git add .
-git commit -m "Complete Postgres/SQLite backend and Netlify setup"
+git commit -m "Complete Postgres backend and Netlify setup"
 git push origin main
 ```
 
@@ -50,8 +52,8 @@ git push origin main
 ### 3️⃣ 환결 변수 설정 (선택사항, 2분)
 Site Settings → Build & deploy → Environment → Edit variables
 
-**SQLite 사용 (권장, 설정 불필요):**
-- 아무것도 설정하지 않으면 자동으로 SQLite 사용
+**PostgreSQL 사용 필수:**
+- 반드시 `DATABASE_URL` 환경 변수를 설정해야 합니다.
 
 **Supabase(PostgreSQL) 사용:**
 1. https://supabase.com 에서 프로젝트 생성
@@ -69,11 +71,8 @@ Site Settings → Build & deploy → Environment → Edit variables
 npm run start
 ```
 
-### 별도 터미널에서 API 테스트
+### 별도 터미널에서 API 확인
 ```bash
-# 데이터베이스 연결 확인
-curl http://localhost:3000/api/db-test
-
 # 교직원 목록
 curl http://localhost:3000/api/teachers
 
@@ -95,15 +94,11 @@ curl -X POST http://localhost:3000/api/admin \
 2. 로컬에서 `npm run start` 후 `/api/db-test` 테스트
 3. DATABASE_URL 환경변수 확인
 
-### SQLite vs PostgreSQL 선택
-- 환경변수 DATABASE_URL 있음 → PostgreSQL
-- 없음 → SQLite (cocobebe.db)
+### 데이터베이스
+- **PostgreSQL만 지원**
+- 환경변수 `DATABASE_URL`이 항상 필요합니다.
 
-### 로컬 데이터베이스 초기화
-```bash
-rm cocobebe.db
-npm run start  # 자동으로 재생성 및 관리자 시드
-```
+
 
 ## API 엔드포인트
 

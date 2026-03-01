@@ -13,7 +13,10 @@ View your app in AI Studio: https://ai.studio/apps/f18562f5-963d-4936-a279-a465d
 **Prerequisites:**  Node.js
 
 1. Install dependencies:
-   `npm install`
+   ```bash
+   npm install
+   npm uninstall better-sqlite3  # remove unused SQLite package
+   ```
 2. Create a `.env.local` file with your configuration. Example:
    ```dotenv
    # basic values used by both front‑end and server
@@ -22,8 +25,8 @@ View your app in AI Studio: https://ai.studio/apps/f18562f5-963d-4936-a279-a465d
    ADMIN_PASSWORD="admin1234"               # seeded password
 
    # database
-   DATABASE_URL="postgresql://user:pass@host:5432/dbname"
-   # Netlify will inject this for you; leave blank locally to use SQLite fallback.
+   DATABASE_URL="postgresql://user:pass@host:5432/dbname"  # required
+   # Netlify will inject this for you; SQLite fallback has been removed.
    # If your provider requires SSL, set DB_SSL=true
    ```
 3. Run the app:
@@ -56,27 +59,23 @@ Netlify Functions run the Express app using `serverless-http`; the server
 initializes tables on cold start, and the static assets are served directly by
 Netlify. CORS is enabled to allow the front‑end to communicate with the API.
 
-You can test locally with Netlify CLI (`netlify dev`) or by running the handler
-manually:
+You can test locally by running the server directly or using Netlify CLI:
 
 ```bash
 npm install
 npm run build   # build frontend
+npm run start   # starts Express server (requires DATABASE_URL)
+# or
 netlify dev     # starts both functions and a dev server
 ```
 
-Migrations run automatically each time the function cold‑starts; the
-PostgreSQL database lives externally (e.g. Supabase, ElephantSQL, Render
-Add‑on). For local development the code will fall back to a file‑based
-SQLite database (`cocobebe.db`) when `DATABASE_URL` is not set.
+Migrations run automatically each time the function cold‑starts; the PostgreSQL database lives externally (e.g. Neon, Supabase, Render add‑on). SQLite fallback is no longer supported - you must provide `DATABASE_URL`.
 
 Once Netlify deployment succeeds you can verify the API with:
 
 ```bash
-curl https://<your-netlify-site>.netlify.app/api/db-test
 curl https://<your-netlify-site>.netlify.app/api/teachers
 ```
-
 And reset the administrator account with:
 
 ```bash
