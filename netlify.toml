@@ -5,3 +5,6 @@
 
 [dev]
   functions = "netlify/functions"
+[functions]
+  node_bundler = "nft"
+  external_node_modules = ["vite", "lightningcss"]

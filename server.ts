@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import { createServer as createViteServer } from 'vite';
 import Database from 'better-sqlite3';
 import { createClient } from '@supabase/supabase-js';
 import pkg from 'pg';
@@ -694,10 +693,17 @@ app.get('/api/db-test', async (req, res) => {
   // platform.
 
 // start server if running directly (not imported by Netlify function)
-// in ESM environment we compare import.meta.url to the executed script path
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Skip this in serverless environments (Netlify, etc.)
+const isServerless = process.env.NETLIFY_FUNCTION_PATH || process.env.AWS_REGION || process.env.VERCEL;
+const isDirect = typeof import.meta !== 'undefined' && 
+                 import.meta.url && 
+                 import.meta.url === `file://${process.argv[1]}`;
+
+if (!isServerless && isDirect) {
   (async () => {
     if (process.env.NODE_ENV !== 'production') {
+      // Lazy import Vite only when needed for local dev
+      const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: 'spa',
