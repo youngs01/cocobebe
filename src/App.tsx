@@ -33,7 +33,7 @@ import {
   ResponsiveContainer,
   Cell
 } from 'recharts';
-import html2pdf from 'html2pdf.js';
+// html2pdf is dynamically imported where needed to avoid duplicate/static+dynamic import issues
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 const apiFetch = (path: string, opts?: RequestInit) =>
@@ -440,7 +440,7 @@ export default function App() {
     }
   };
 
-  const downloadDashboardPDF = () => {
+  const downloadDashboardPDF = async () => {
     const element = document.querySelector('main');
     if (!element) return;
 
@@ -453,7 +453,10 @@ export default function App() {
     };
 
     try {
-      html2pdf().set(opt).from(element).save();
+      const { default: html2pdf } = await import('html2pdf.js');
+      // allow UI to settle
+      await new Promise(r => setTimeout(r, 0));
+      await html2pdf().set(opt).from(element).save();
     } catch (e) {
       console.error('PDF 생성 실패', e);
       alert('PDF 저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.');

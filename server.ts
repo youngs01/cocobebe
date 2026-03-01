@@ -13,7 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Database Setup
-const usePostgres = process.env.USE_POSTGRES === 'true';
+// Prefer explicit `USE_POSTGRES=true`, but fall back to using Postgres when a DATABASE_URL is present.
+const usePostgres = process.env.USE_POSTGRES === 'true' || !!process.env.DATABASE_URL;
 const useSupabase = !usePostgres && process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY;
 
 let db: any = null;
