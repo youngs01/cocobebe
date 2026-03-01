@@ -220,6 +220,30 @@ async function startServer() {
     }
   });
 
+  // convenience endpoint: reset or update admin account
+  app.post('/api/admin', async (req, res) => {
+    const { name = 'admin', password = 'admin1234' } = req.body || {};
+    try {
+      if (usePostgres && pool) {
+        await pool.query(
+          'UPDATE teachers SET name=$1, password=$2 WHERE role=$3',
+          [name, password, 'admin']
+        );
+      } else if (supabase) {
+        await supabase
+          .from('teachers')
+          .update({ name, password })
+          .eq('role', 'admin');
+      } else if (db) {
+        db.prepare("UPDATE teachers SET name = ?, password = ? WHERE role = 'admin'").run(name, password);
+      }
+      return res.json({ ok: true });
+    } catch (err) {
+      return res.status(500).json({ ok: false, error: err });
+    }
+  });
+
+
   app.get('/api/teachers', async (req, res) => {
     try {
       if (supabase) {
