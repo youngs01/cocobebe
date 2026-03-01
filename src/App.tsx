@@ -803,7 +803,7 @@ export default function App() {
 
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                 <div className="xl:col-span-1">
-                  {user?.role === 'admin' ? (
+                  {user?.role === 'admin' && (
                     <div className="bg-white p-6 rounded-3xl shadow-sm border border-brand-200 sticky top-8">
                       <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                         <UserPlus size={20} className="text-brand-500" />
@@ -873,11 +873,6 @@ export default function App() {
                           등록하기
                         </button>
                       </form>
-                    </div>
-                  ) : (
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-brand-200 sticky top-8">
-                      <h3 className="text-lg font-bold mb-4">교직원 등록</h3>
-                      <p className="text-sm text-brand-500">신규 교직원 등록은 마스터 관리자만 수행할 수 있습니다.</p>
                     </div>
                   )}
                 </div>
