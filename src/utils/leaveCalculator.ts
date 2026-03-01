@@ -23,37 +23,23 @@ export function calculateAnnualLeave(joinDateStr: string, targetDate: Date = new
 
   if (isBefore(today, joinDate)) return 0;
 
+  // 전체 근속년수(정수)
   const totalYears = differenceInYears(today, joinDate);
-  
-  // 현재 입사 기념일 계산 (올해의 입사 기념일)
-  const currentAnniversary = addYears(joinDate, totalYears);
-  
-  // 올해 입사 기념일이 아직 도래하지 않았으면 작년 기준
-  const relevantAnniversary = isBefore(today, currentAnniversary) 
-    ? addYears(joinDate, totalYears - 1) 
-    : currentAnniversary;
-  
-  // 관련 기념일 기준의 근속 년수
-  const yearsSinceLastAnniversary = differenceInYears(today, relevantAnniversary);
-  
-  let annualLeave = 0;
 
-  // 현재 주기(입사 기념일 ~ 다음 입사 기념일)에 부여되는 연차 계산
-  if (yearsSinceLastAnniversary < 1) {
-    // 1년 미만: 월 1일, 최대 11일
-    const months = differenceInMonths(today, relevantAnniversary);
-    annualLeave = Math.min(months, 11);
-  } else if (yearsSinceLastAnniversary < 3) {
-    // 1년 이상 3년 미만: 15일
-    annualLeave = 15;
-  } else {
-    // 3년 이상: 15일 + 추가 (2년마다 1일)
-    const totalYearsFromStart = differenceInYears(today, joinDate);
-    const extraDays = Math.floor(totalYearsFromStart / 2);
-    annualLeave = Math.min(15 + extraDays, 25);
+  // 1년 미만 주기는 매월 1일씩 누적, 최대 11일
+  if (totalYears < 1) {
+    const months = differenceInMonths(today, joinDate);
+    return Math.min(months, 11);
   }
 
-  return annualLeave;
+  // 1년 이상 3년 미만: 15일 고정
+  if (totalYears < 3) {
+    return 15;
+  }
+
+  // 3년 이상: 15일 + (근속년수 ÷ 2) 일 추가, 최대 25일
+  const extraDays = Math.floor(totalYears / 2);
+  return Math.min(15 + extraDays, 25);
 }
 
 export function getLeaveUsage(requests: any[]) {
