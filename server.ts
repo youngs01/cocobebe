@@ -265,6 +265,12 @@ async function startServer() {
 
   app.post('/api/teachers', async (req, res) => {
     try {
+      // Simple authorization: only admin role may create teachers
+      const actorRoleHeader = req.headers['x-user-role'];
+      const actorRole = Array.isArray(actorRoleHeader) ? actorRoleHeader[0] : (actorRoleHeader || '');
+      if (actorRole !== 'admin') {
+        return res.status(403).json({ error: '권한이 없습니다. 관리자만 교직원을 등록할 수 있습니다.' });
+      }
       const { name, join_date, role, password, class_name } = req.body;
       if (supabase) {
         const { data, error } = await supabase

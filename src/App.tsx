@@ -322,7 +322,7 @@ export default function App() {
     e.preventDefault();
     const res = await apiFetch('/api/teachers', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-User-Role': user?.role || '' },
       body: JSON.stringify(newTeacher)
     });
     if (res.ok) {
@@ -803,76 +803,83 @@ export default function App() {
 
               <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
                 <div className="xl:col-span-1">
-                  <div className="bg-white p-6 rounded-3xl shadow-sm border border-brand-200 sticky top-8">
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                      <UserPlus size={20} className="text-brand-500" />
-                      신규 교사 등록
-                    </h3>
-                    <form onSubmit={handleAddTeacher} className="space-y-4">
-                      <div>
-                        <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">이름</label>
-                        <input 
-                          type="text" 
-                          required
-                          className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
-                          value={newTeacher.name}
-                          onChange={e => setNewTeacher({...newTeacher, name: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">입사일</label>
-                        <input 
-                          type="date" 
-                          required
-                          className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
-                          value={newTeacher.join_date}
-                          onChange={e => setNewTeacher({...newTeacher, join_date: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">담당 반</label>
-                        <input 
-                          type="text" 
-                          className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
-                          value={newTeacher.class_name}
-                          onChange={e => setNewTeacher({...newTeacher, class_name: e.target.value})}
-                          placeholder="예: 햇살반"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">직책</label>
-                        <select 
-                          className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
-                          value={newTeacher.role}
-                          onChange={e => setNewTeacher({...newTeacher, role: e.target.value as any})}
+                  {user?.role === 'admin' ? (
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-brand-200 sticky top-8">
+                      <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <UserPlus size={20} className="text-brand-500" />
+                        신규 교사 등록
+                      </h3>
+                      <form onSubmit={handleAddTeacher} className="space-y-4">
+                        <div>
+                          <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">이름</label>
+                          <input 
+                            type="text" 
+                            required
+                            className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={newTeacher.name}
+                            onChange={e => setNewTeacher({...newTeacher, name: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">입사일</label>
+                          <input 
+                            type="date" 
+                            required
+                            className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={newTeacher.join_date}
+                            onChange={e => setNewTeacher({...newTeacher, join_date: e.target.value})}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">담당 반</label>
+                          <input 
+                            type="text" 
+                            className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={newTeacher.class_name}
+                            onChange={e => setNewTeacher({...newTeacher, class_name: e.target.value})}
+                            placeholder="예: 햇살반"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">직책</label>
+                          <select 
+                            className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={newTeacher.role}
+                            onChange={e => setNewTeacher({...newTeacher, role: e.target.value as any})}
+                          >
+                            <option value="teacher">교사</option>
+                            <option value="director">원장</option>
+                            <option value="assistant">보조교사</option>
+                            <option value="cook">조리사</option>
+                            <option value="extension">연장반교사</option>
+                            <option value="night_extension">야간반 연장교사</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">비밀번호</label>
+                          <input 
+                            type="text" 
+                            required
+                            className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
+                            value={newTeacher.password}
+                            onChange={e => setNewTeacher({...newTeacher, password: e.target.value})}
+                            placeholder="초기 비밀번호"
+                          />
+                        </div>
+                        <button 
+                          type="submit"
+                          className="w-full bg-brand-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-colors shadow-md"
                         >
-                          <option value="teacher">교사</option>
-                          <option value="director">원장</option>
-                          <option value="assistant">보조교사</option>
-                          <option value="cook">조리사</option>
-                          <option value="extension">연장반교사</option>
-                          <option value="night_extension">야간반 연장교사</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-brand-500 uppercase tracking-wider mb-1">비밀번호</label>
-                        <input 
-                          type="text" 
-                          required
-                          className="w-full px-4 py-2 rounded-xl border border-brand-200 focus:ring-2 focus:ring-brand-500 outline-none"
-                          value={newTeacher.password}
-                          onChange={e => setNewTeacher({...newTeacher, password: e.target.value})}
-                          placeholder="초기 비밀번호"
-                        />
-                      </div>
-                      <button 
-                        type="submit"
-                        className="w-full bg-brand-900 text-white py-3 rounded-xl font-bold hover:bg-black transition-colors shadow-md"
-                      >
-                        등록하기
-                      </button>
-                    </form>
-                  </div>
+                          등록하기
+                        </button>
+                      </form>
+                    </div>
+                  ) : (
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border border-brand-200 sticky top-8">
+                      <h3 className="text-lg font-bold mb-4">교직원 등록</h3>
+                      <p className="text-sm text-brand-500">신규 교직원 등록은 마스터 관리자만 수행할 수 있습니다.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="xl:col-span-3">
