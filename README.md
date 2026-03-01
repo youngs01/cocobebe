@@ -27,20 +27,44 @@ View your app in AI Studio: https://ai.studio/apps/f18562f5-963d-4936-a279-a465d
 3. Run the app:
    `npm run dev`
 
-## Deploying to Render
+## Deploying to Netlify (front‑end + back‑end)
+
+This project can be hosted entirely on Netlify using Netlify Functions for the
+API and a static site for the React app.
 
 1. Push the repository to GitHub.
-2. In the Render dashboard create a **Web Service** and connect your GitHub repo.
-   - Build command: `npm install && npm run build`
-   - Start command: `npm start` (or `npm run dev` if you prefer TSX runtime).
-   - Environment: set `NODE_ENV=production`.
-3. Add environment variables in Render:
-   - `USE_POSTGRES=true`
-   - `DATABASE_URL` = either the **internal** connection string (e.g. `postgresql://coco_oiwh_user:...@dpg-...:5432/coco_oiwh`) or the **external** one; internal is faster and only reachable from Render services.
-   - Optionally: `DB_SSL=true`, `ADMIN_NAME`, `ADMIN_PASSWORD`, etc.
-4. (Optional) Create a managed PostgreSQL add‑on on Render and copy its URL into `DATABASE_URL`.
-5. Open a shell to the database using `render psql <service-name>` or via the web console.
+2. In the Netlify dashboard choose **New site from Git** and point to this repo.
+3. Configure the build settings:
+   - **Build command:** `npm install && npm run build`
+   - **Publish directory:** `dist`
+   - **Functions directory:** `netlify/functions`
+4. Add environment variables under **Site settings → Build & deploy → Environment**:
+   ```text
+   USE_POSTGRES=true
+   DATABASE_URL=<your PostgreSQL connection string>
+   DB_SSL=true        # if your provider requires SSL
+   ADMIN_NAME=admin
+   ADMIN_PASSWORD=admin1234
+   VITE_API_URL=https://<your-netlify-site>.netlify.app
+   ```
+   The `VITE_API_URL` value points front‑end code to the serverless API
+   (the same Netlify site; `/api/*` is proxied automatically).
+5. (Optional) if you have a custom domain, attach it in Netlify’s domain settings.
 
-The server code reads `process.env.PORT` so Render’s assigned port is used automatically.
+Netlify Functions run the Express app using `serverless-http`; the server
+initializes tables on cold start, and the static assets are served directly by
+Netlify. CORS is enabled to allow the front‑end to communicate with the API.
 
-With this setup the app and database will run together on Render; migrations run on startup to create any missing tables or columns.
+You can test locally with Netlify CLI (`netlify dev`) or by running the handler
+manually:
+
+```bash
+npm install
+npm run build   # build frontend
+netlify dev     # starts both functions and a dev server
+```
+
+Migrations run automatically each time the function cold‑starts; the
+PostgreSQL database lives externally (e.g. Render Add‑on, ElephantSQL,
+Supabase). Netlify itself does not host the database.
+

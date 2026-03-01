@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import 'dotenv/config';
 import { createServer as createViteServer } from 'vite';
 import Database from 'better-sqlite3';
@@ -13,8 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Database Setup
-// Prefer explicit `USE_POSTGRES=true`, but fall back to using Postgres when a DATABASE_URL is present.
-const usePostgres = process.env.USE_POSTGRES === 'true' || !!process.env.DATABASE_URL;
+// Prefer explicit `USE_POSTGRES=true`, but fall back to using Postgres when a DATABASE_URL (or Netlify's NETLIFY_DATABASE_URL) is present.
+const usePostgres = process.env.USE_POSTGRES === 'true' || !!process.env.DATABASE_URL || !!process.env.NETLIFY_DATABASE_URL;
 const useSupabase = !usePostgres && process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY;
 
 let db: any = null;
@@ -24,7 +25,7 @@ let supabase: any = null;
 if (usePostgres) {
   // PostgreSQL Setup
   pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: process.env.DATABASE_URL || process.env.NETLIFY_DATABASE_URL,
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
   });
   console.log('Using PostgreSQL database');
@@ -172,54 +173,54 @@ if (usePostgres && pool) {
   }
 }
 
-async function startServer() {
-  const app = express();
-  app.use(express.json());
+// create the Express app and configure it; we export it for both serverless and local use
+const app = express();
+// allow cross-origin requests from Netlify frontend (or any origin during development)
+app.use(cors({ origin: '*' }));
+app.use(express.json());
 
-  // Seed Admin (Supabase)
-  if (supabase) {
-    const adminName = process.env.ADMIN_NAME || 'admin';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
-    
-    const { data: existingAdmin } = await supabase
+// Seed Admin (Supabase)
+async function seedAdminSupabase() {
+  const adminName = process.env.ADMIN_NAME || 'admin';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
+  const { data: existingAdmin } = await supabase
+    .from('teachers')
+    .select('*')
+    .eq('role', 'admin')
+    .single();
+
+  if (!existingAdmin) {
+    await supabase
       .from('teachers')
-      .select('*')
-      .eq('role', 'admin')
-      .single();
-
-    if (!existingAdmin) {
-      await supabase
-        .from('teachers')
-        .insert([{ name: adminName, join_date: '2020-01-01', role: 'admin', password: adminPassword }]);
-    } else {
-      await supabase
-        .from('teachers')
-        .update({ name: adminName, password: adminPassword })
-        .eq('role', 'admin');
-    }
+      .insert([{ name: adminName, join_date: '2020-01-01', role: 'admin', password: adminPassword }]);
+  } else {
+    await supabase
+      .from('teachers')
+      .update({ name: adminName, password: adminPassword })
+      .eq('role', 'admin');
   }
+}
 
-  // API Routes
-  // simple database connectivity check
-  app.get('/api/db-test', async (req, res) => {
-    try {
-      if (usePostgres && pool) {
-        const result = await pool.query('SELECT NOW()');
-        return res.json({ ok: true, time: result.rows[0] });
-      } else if (supabase) {
-        // supabase doesn't have a raw SQL API from the client; perform a lightweight query
-        const { data, error } = await supabase.from('teachers').select('id').limit(1);
-        if (error) throw error;
-        return res.json({ ok: true, sample: data });
-      } else if (db) {
-        const row = db.prepare('SELECT datetime("now") as now').get();
-        return res.json({ ok: true, time: row.now });
-      }
-      res.status(500).json({ ok: false, error: 'no database configured' });
-    } catch (err) {
-      res.status(500).json({ ok: false, error: err });
+// API Routes
+// simple database connectivity check
+app.get('/api/db-test', async (req, res) => {
+  try {
+    if (usePostgres && pool) {
+      const result = await pool.query('SELECT NOW()');
+      return res.json({ ok: true, time: result.rows[0] });
+    } else if (supabase) {
+      const { data, error } = await supabase.from('teachers').select('id').limit(1);
+      if (error) throw error;
+      return res.json({ ok: true, sample: data });
+    } else if (db) {
+      const row = db.prepare('SELECT datetime("now") as now').get();
+      return res.json({ ok: true, time: row.now });
     }
-  });
+    res.status(500).json({ ok: false, error: 'no database configured' });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err });
+  }
+});
 
   // convenience endpoint: reset or update admin account
   app.post('/api/admin', async (req, res) => {
@@ -687,24 +688,33 @@ async function startServer() {
     }
   });
 
-  // Vite Middleware
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
-    app.use(express.static(path.join(__dirname, 'dist')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    });
-  }
+  // NOTE: serving static files / Vite middleware is only needed when
+  // running as a standalone server (local development or a traditional
+  // deployment). For serverless functions we leave those concerns to the
+  // platform.
 
-  const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+// start server if running directly (not imported by Netlify function)
+// in ESM environment we compare import.meta.url to the executed script path
+if (import.meta.url === `file://${process.argv[1]}`) {
+  (async () => {
+    if (process.env.NODE_ENV !== 'production') {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    } else {
+      app.use(express.static(path.join(__dirname, 'dist')));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+      });
+    }
+
+    const port = parseInt(process.env.PORT || '3000', 10);
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`Server listening on port ${port}`);
+    });
+  })();
 }
 
-startServer();
+export default app;
