@@ -40,6 +40,7 @@ const apiFetch = (path: string, opts?: RequestInit) =>
   fetch(`${API_BASE}${path}`, opts);
 
 const DocumentModal = ({ request, onClose, teachers }: { request: LeaveRequest; onClose: () => void; teachers: Teacher[] }) => {
+  const [generating, setGenerating] = useState(false);
   const teacher = teachers.find(t => t.id === request.teacher_id);
   const roleDisplay = (role?: string) => {
     switch(role) {
@@ -53,7 +54,7 @@ const DocumentModal = ({ request, onClose, teachers }: { request: LeaveRequest; 
     }
   };
 
-  const downloadPDF = () => {
+  const downloadPDF = async () => {
     const element = document.getElementById('printable-document');
     if (!element) return;
 
@@ -65,11 +66,18 @@ const DocumentModal = ({ request, onClose, teachers }: { request: LeaveRequest; 
       jsPDF: { orientation: 'portrait' as const, unit: 'mm' as const, format: 'a4' }
     };
 
+    setGenerating(true);
     try {
-      html2pdf().set(opt).from(element).save();
+      const { default: html2pdf } = await import('html2pdf.js');
+
+      // give browser a tick to render overlay/etc
+      await new Promise(r => setTimeout(r, 0));
+      await html2pdf().set(opt).from(element).save();
     } catch (e) {
       console.error('PDF 생성 실패', e);
       alert('PDF 저장 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -88,21 +96,28 @@ const DocumentModal = ({ request, onClose, teachers }: { request: LeaveRequest; 
           <div className="flex gap-2">
             <button 
               onClick={downloadPDF}
-              className="p-2 text-brand-500 hover:bg-brand-100 rounded-lg transition-colors"
+              disabled={generating}
+              className="p-2 text-brand-500 hover:bg-brand-100 rounded-lg transition-colors disabled:opacity-50"
               title="PDF 다운로드"
             >
               <Download size={20} />
             </button>
             <button 
               onClick={onClose}
-              className="p-2 text-brand-400 hover:bg-brand-100 rounded-lg transition-colors"
+              disabled={generating}
+              className="p-2 text-brand-400 hover:bg-brand-100 rounded-lg transition-colors disabled:opacity-50"
             >
               <XCircle size={24} />
             </button>
           </div>
         </div>
         
-        <div className="p-12 bg-white print:p-0" id="printable-document">
+        <div className="relative p-12 bg-white print:p-0" id="printable-document">
+          {generating && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-brand-500 border-t-transparent"></div>
+            </div>
+          )}
           <div className="border-4 border-double border-brand-900 p-8 relative">
             <div className="flex justify-between items-start mb-12 gap-4">
               <div className="w-32 hidden md:block"></div>
@@ -245,15 +260,18 @@ export default function App() {
       setTeachers(tData);
       setRequests(rData);
 
+      let nData: Notification[] = [];
       if (user) {
         const nRes = await apiFetch(`/api/notifications/${user.id}`);
         if (nRes.ok) {
-          const nData = await nRes.json();
+          nData = await nRes.json();
           setNotifications(nData);
         }
       }
+      return { tData, rData, nData };
     } catch (err) {
       console.error('Failed to fetch data', err);
+      return { tData: [], rData: [], nData: [] };
     }
   };
 
@@ -268,13 +286,33 @@ export default function App() {
     fetchData();
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const found = teachers.find(t => t.name === loginForm.name && t.password === loginForm.password);
     if (found) {
       setUser(found);
       setIsLoginModalOpen(false);
       setActiveTab(found.role === 'admin' ? 'dashboard' : 'my-leave');
+
+      // refresh data (including notifications for this user)
+      const { rData, nData } = await fetchData();
+
+      // director/admin: check for pending leave requests
+      if (found.role === 'director' || found.role === 'admin') {
+        const pending = rData.filter(r => r.status === 'pending').length;
+        if (pending > 0) {
+          alert(`승인 대기 중인 연차 요청이 ${pending}건 있습니다.`);
+        }
+      } else {
+        // regular teacher: alert if any unread approval notifications
+        const approveIds = nData
+          .filter(n => !n.is_read && n.message.includes('승인되'))
+          .map(n => n.id);
+        if (approveIds.length > 0) {
+          alert(`연차 승인 알림이 ${approveIds.length}건 있습니다.`);
+          approveIds.forEach(id => markNotificationAsRead(id));
+        }
+      }
     } else {
       alert('이름 또는 비밀번호가 올바르지 않습니다.');
     }
@@ -469,7 +507,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex bg-brand-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-brand-200 flex flex-col no-print">
+      <aside className="w-64 bg-white border-r border-brand-200 flex flex-col no-print hidden lg:flex">
         <div className="p-6 border-bottom border-brand-100">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -605,7 +643,36 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-8 print:p-0">
+      {/* mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-brand-200 lg:hidden">
+        <div className="flex justify-around py-1">
+          <MobileNavItem
+            icon={<Users className="w-5 h-5" />}
+            label="교직원"
+            active={activeTab === 'teachers'}
+            onClick={() => setActiveTab('teachers')}
+          />
+          <MobileNavItem
+            icon={<ClipboardList className="w-5 h-5" />}
+            label="요청"
+            active={activeTab === 'requests'}
+            onClick={() => setActiveTab('requests')}
+          />
+          <MobileNavItem
+            icon={<PieChartIcon className="w-5 h-5" />}
+            label="대시보드"
+            active={activeTab === 'dashboard'}
+            onClick={() => setActiveTab('dashboard')}
+          />
+          <MobileNavItem
+            icon={<Settings className="w-5 h-5" />}
+            label="내정보"
+            active={activeTab === 'profile'}
+            onClick={() => setActiveTab('profile')}
+          />
+        </div>
+      </nav>
+      <main className="flex-1 overflow-y-auto p-8 print:p-0 pb-20 lg:pb-8">
         <AnimatePresence mode="wait">
           {activeTab === 'dashboard' && (
             <motion.div 
@@ -1315,6 +1382,20 @@ function SidebarItem({ icon, label, active, onClick }: { icon: React.ReactNode, 
       {icon}
       <span className="font-medium">{label}</span>
       {active && <ChevronRight size={16} className="ml-auto" />}
+    </button>
+  );
+}
+
+function MobileNavItem({ icon, label, active, onClick }: { icon: React.ReactNode, label: string, active: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center justify-center text-xs py-1 w-16 ${
+        active ? 'text-brand-900' : 'text-brand-500'
+      }`}
+    >
+      {icon}
+      <span className="mt-1">{label}</span>
     </button>
   );
 }
