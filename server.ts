@@ -199,6 +199,27 @@ async function startServer() {
   }
 
   // API Routes
+  // simple database connectivity check
+  app.get('/api/db-test', async (req, res) => {
+    try {
+      if (usePostgres && pool) {
+        const result = await pool.query('SELECT NOW()');
+        return res.json({ ok: true, time: result.rows[0] });
+      } else if (supabase) {
+        // supabase doesn't have a raw SQL API from the client; perform a lightweight query
+        const { data, error } = await supabase.from('teachers').select('id').limit(1);
+        if (error) throw error;
+        return res.json({ ok: true, sample: data });
+      } else if (db) {
+        const row = db.prepare('SELECT datetime("now") as now').get();
+        return res.json({ ok: true, time: row.now });
+      }
+      res.status(500).json({ ok: false, error: 'no database configured' });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err });
+    }
+  });
+
   app.get('/api/teachers', async (req, res) => {
     try {
       if (supabase) {
