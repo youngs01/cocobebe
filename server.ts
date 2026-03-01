@@ -4,6 +4,10 @@ import 'dotenv/config';
 import { Pool } from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 10;  // for password hashing
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -71,11 +75,12 @@ async function seedAdmin() {
   const adminPassword = process.env.ADMIN_PASSWORD || 'admin1234';
 
   try {
+    const hashed = await bcrypt.hash(adminPassword, SALT_ROUNDS);
     const { rows } = await pool!.query('SELECT * FROM teachers WHERE role = $1', ['admin']);
     if (rows.length === 0) {
-      await pool!.query('INSERT INTO teachers (name, join_date, role, password) VALUES ($1, $2, $3, $4)', [adminName, '2020-01-01', 'admin', adminPassword]);
+      await pool!.query('INSERT INTO teachers (name, join_date, role, password) VALUES ($1, $2, $3, $4)', [adminName, '2020-01-01', 'admin', hashed]);
     } else {
-      await pool!.query('UPDATE teachers SET name=$1, password=$2 WHERE role=$3', [adminName, adminPassword, 'admin']);
+      await pool!.query('UPDATE teachers SET name=$1, password=$2 WHERE role=$3', [adminName, hashed, 'admin']);
     }
   } catch (err) {
     console.error('Admin seed error:', err);
@@ -102,7 +107,8 @@ app.get('/api/db-test', async (req, res) => {
 app.post('/api/admin', async (req, res) => {
   const { name = 'admin', password = 'admin1234' } = req.body || {};
   try {
-      await pool!.query('UPDATE teachers SET name=$1, password=$2 WHERE role=$3', [name, password, 'admin']);
+      const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+      await pool!.query('UPDATE teachers SET name=$1, password=$2 WHERE role=$3', [name, hashed, 'admin']);
       return res.json({ ok: true });
     } catch (err) {
       return res.status(500).json({ ok: false, error: String(err) });
@@ -111,7 +117,8 @@ app.post('/api/admin', async (req, res) => {
 
 app.get('/api/teachers', async (req, res) => {
   try {
-      const result = await pool!.query('SELECT * FROM teachers ORDER BY id ASC');
+      // exclude password when returning list
+      const result = await pool!.query('SELECT id,name,join_date,role,class_name,leave_adjustment FROM teachers ORDER BY id ASC');
       return res.json(result.rows);
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -125,8 +132,9 @@ app.post('/api/teachers', async (req, res) => {
     if (actorRole !== 'admin') return res.status(403).json({ error: '권한이 없습니다' });
 
     const { name, join_date, role, password, class_name } = req.body;
+    const hashed = await bcrypt.hash(password || '1234', SALT_ROUNDS);
     {
-      const result = await pool!.query('INSERT INTO teachers (name, join_date, role, password, class_name) VALUES ($1,$2,$3,$4,$5) RETURNING id', [name, join_date, role || 'teacher', password || '1234', class_name]);
+      const result = await pool!.query('INSERT INTO teachers (name, join_date, role, password, class_name) VALUES ($1,$2,$3,$4,$5) RETURNING id', [name, join_date, role || 'teacher', hashed, class_name]);
       return res.json({ id: result.rows[0].id });
     }
   } catch (err) {
@@ -136,8 +144,11 @@ app.post('/api/teachers', async (req, res) => {
 
 app.patch('/api/teachers/:id', async (req, res) => {
   try {
-    const { password, class_name, leave_adjustment } = req.body;
+    let { password, class_name, leave_adjustment } = req.body;
     const id = req.params.id;
+    if (password !== undefined) {
+      password = await bcrypt.hash(password, SALT_ROUNDS);
+    }
     {
       const updates: string[] = [];
       const values: any[] = [];
@@ -172,7 +183,8 @@ app.post('/api/teachers/:id/reset-password', async (req, res) => {
   try {
       const id = req.params.id;
       const newPwd = req.body.password || '1234';
-      await pool!.query('UPDATE teachers SET password = $1 WHERE id = $2', [newPwd, id]);
+      const hashed = await bcrypt.hash(newPwd, SALT_ROUNDS);
+      await pool!.query('UPDATE teachers SET password = $1 WHERE id = $2', [hashed, id]);
       return res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: String(err) });
@@ -241,6 +253,22 @@ app.delete('/api/notifications/:userId', async (req, res) => {
     await pool!.query('DELETE FROM notifications WHERE user_id = $1', [req.params.userId]);
     return res.json({ success: true });
   } catch (err) { res.status(500).json({ error: String(err) }); }
+});
+
+// authentication endpoint
+app.post('/api/login', async (req, res) => {
+  const { name, password } = req.body || {};
+  try {
+    const result = await pool!.query('SELECT * FROM teachers WHERE name=$1 LIMIT 1', [name]);
+    if (result.rows.length === 0) return res.status(401).json({ ok: false, error: 'invalid' });
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ ok: false, error: 'invalid' });
+    delete user.password;
+    return res.json({ ok: true, user });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 // SPA fallback

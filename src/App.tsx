@@ -288,33 +288,44 @@ export default function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const found = teachers.find(t => t.name === loginForm.name && t.password === loginForm.password);
-    if (found) {
-      setUser(found);
-      setIsLoginModalOpen(false);
-      setActiveTab(found.role === 'admin' ? 'dashboard' : 'my-leave');
+    try {
+      const res = await apiFetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm)
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        const found: Teacher = data.user;
+        setUser(found);
+        setIsLoginModalOpen(false);
+        setActiveTab(found.role === 'admin' ? 'dashboard' : 'my-leave');
 
-      // refresh data (including notifications for this user)
-      const { rData, nData } = await fetchData();
+        // refresh data (including notifications for this user)
+        const { rData, nData } = await fetchData();
 
-      // director/admin: check for pending leave requests
-      if (found.role === 'director' || found.role === 'admin') {
-        const pending = rData.filter(r => r.status === 'pending').length;
-        if (pending > 0) {
-          alert(`승인 대기 중인 연차 요청이 ${pending}건 있습니다.`);
+        // director/admin: check for pending leave requests
+        if (found.role === 'director' || found.role === 'admin') {
+          const pending = rData.filter(r => r.status === 'pending').length;
+          if (pending > 0) {
+            alert(`승인 대기 중인 연차 요청이 ${pending}건 있습니다.`);
+          }
+        } else {
+          // regular teacher: alert if any unread approval notifications
+          const approveIds = nData
+            .filter(n => !n.is_read && n.message.includes('승인되'))
+            .map(n => n.id);
+          if (approveIds.length > 0) {
+            alert(`연차 승인 알림이 ${approveIds.length}건 있습니다.`);
+            approveIds.forEach(id => markNotificationAsRead(id));
+          }
         }
       } else {
-        // regular teacher: alert if any unread approval notifications
-        const approveIds = nData
-          .filter(n => !n.is_read && n.message.includes('승인되'))
-          .map(n => n.id);
-        if (approveIds.length > 0) {
-          alert(`연차 승인 알림이 ${approveIds.length}건 있습니다.`);
-          approveIds.forEach(id => markNotificationAsRead(id));
-        }
+        alert('이름 또는 비밀번호가 올바르지 않습니다.');
       }
-    } else {
-      alert('이름 또는 비밀번호가 올바르지 않습니다.');
+    } catch (err) {
+      console.error(err);
+      alert('로그인 중 오류가 발생했습니다.');
     }
   };
 
