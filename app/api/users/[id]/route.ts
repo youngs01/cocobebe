@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ensureDatabaseSchema, query, ensureLeaveGrantForUser } from '@/lib/db';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'DATABASE_URL이 설정되지 않았습니다.' }, { status: 500 });
@@ -9,7 +9,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     await ensureDatabaseSchema();
 
-    const { id } = params;
+    const { id } = await props.params;
     const body = await request.json();
     const { name, department, position, phone, email, hire_date, role } = body;
 
@@ -50,7 +50,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
     if (!process.env.DATABASE_URL) {
       return NextResponse.json({ error: 'DATABASE_URL이 설정되지 않았습니다.' }, { status: 500 });
@@ -58,7 +58,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     await ensureDatabaseSchema();
 
-    const { id } = params;
+    const { id } = await props.params;
 
     // 사용자를 inactive 상태로 변경 (삭제 대신 비활성화)
     const result = await query(
