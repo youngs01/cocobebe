@@ -42,11 +42,15 @@ export default function App() {
         fetch('/api/health').then(r => r.json()).catch(() => ({ dbConnected: false }))
       ]);
 
-      const fetchedUsers = usersRes || [];
+      const fetchedUsers = Array.isArray(usersRes) ? usersRes : [];
+      const fetchedLeaveRequests = Array.isArray(reqsRes) ? reqsRes : [];
+      const fetchedHolidays = Array.isArray(holRes) ? holRes : [];
+      const fetchedSchedules = Array.isArray(schRes) ? schRes : [];
+
       setUsers(fetchedUsers);
-      setLeaveRequests(reqsRes || []);
-      setHolidays(holRes || []);
-      setSchedules(schRes || []);
+      setLeaveRequests(fetchedLeaveRequests);
+      setHolidays(fetchedHolidays);
+      setSchedules(fetchedSchedules);
       if (healthRes && typeof healthRes.dbConnected === 'boolean') {
         setDbConnected(healthRes.dbConnected);
       }

@@ -1,5 +1,13 @@
 import { NextResponse } from 'next/server';
-import { ensureDatabaseSchema, query } from '@/lib/db';
+import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
+
+function calculateYearsOfService(hireDate: string) {
+  const start = new Date(`${hireDate}T00:00:00`);
+  const end = new Date();
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  const years = Math.max(0, Math.floor(months / 12));
+  return { years, months: Math.max(0, months % 12) };
+}
 
 export async function GET() {
   try {
@@ -8,8 +16,35 @@ export async function GET() {
     }
 
     await ensureDatabaseSchema();
-    const result = await query(`SELECT * FROM users ORDER BY name ASC`);
-    return NextResponse.json(result.rows);
+    const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
+    const grantsResult = await query(`SELECT * FROM leave_grants ORDER BY year ASC`);
+
+    const grantsByUser = new Map<string, any[]>();
+    for (const grant of grantsResult.rows) {
+      const list = grantsByUser.get(grant.user_id) || [];
+      list.push(grant);
+      grantsByUser.set(grant.user_id, list);
+    }
+
+    const users = usersResult.rows.map((user: any) => {
+      const grants = grantsByUser.get(user.id) || [];
+      const latestGrant = grants[grants.length - 1] || null;
+      const { years, months } = calculateYearsOfService(user.hire_date);
+      return {
+        ...user,
+        statutory_days: Number(latestGrant?.statutory_days || 15),
+        bonus_days: Number(latestGrant?.bonus_days || 0),
+        total_days: Number(latestGrant?.total_days || latestGrant?.statutory_days || 15),
+        used_days: Number(latestGrant?.used_days || 0),
+        pending_days: Number(latestGrant?.pending_days || 0),
+        remaining_days: Number(latestGrant?.remaining_days || latestGrant?.total_days || 15),
+        calculation_note: latestGrant?.calculation_note || '기본값',
+        years_of_service: years,
+        months_of_service: months,
+      };
+    });
+
+    return NextResponse.json(users);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || '사용자 조회 실패' }, { status: 500 });
   }
@@ -52,6 +87,8 @@ export async function POST(request: Request) {
          position = EXCLUDED.position`,
       [id, loginId, password, name, role, hireDate, department, phone, email, status, position]
     );
+
+    await ensureLeaveGrantForUser(id, hireDate, new Date().getFullYear());
 
     return NextResponse.json({ success: true, message: '사용자 등록 완료', user: { id, login_id: loginId, name, role } });
   } catch (error: any) {

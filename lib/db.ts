@@ -1,5 +1,6 @@
 import { Pool } from 'pg';
 import 'dotenv/config';
+import { getDefaultHolidayList } from './holidays';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -22,6 +23,87 @@ function getPool() {
 }
 
 export const pool = getPool();
+
+function getCurrentYear() {
+  return new Date().getFullYear();
+}
+
+function calculateServiceInfo(hireDate: string, asOfYear: number) {
+  const start = new Date(`${hireDate}T00:00:00`);
+  const end = new Date(`${asOfYear}-12-31T00:00:00`);
+  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  const years = Math.max(0, Math.floor(months / 12));
+  const remainingMonths = Math.max(0, months % 12);
+
+  let statutoryDays = 15;
+  if (years >= 1) {
+    statutoryDays = Math.min(25, 15 + Math.max(0, years - 1));
+  }
+
+  return { years, months: remainingMonths, statutoryDays };
+}
+
+export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
+  const existingGrant = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
+  if (existingGrant.rows.length > 0) {
+    return existingGrant.rows[0];
+  }
+
+  const previousGrant = await query(
+    `SELECT remaining_days FROM leave_grants WHERE user_id = $1 AND year < $2 ORDER BY year DESC LIMIT 1`,
+    [userId, year]
+  );
+
+  const { statutoryDays, years, months } = calculateServiceInfo(hireDate, year);
+  const bonusDays = 0;
+  const totalDays = statutoryDays + bonusDays;
+  const previousRemaining = previousGrant.rows[0]?.remaining_days != null ? Number(previousGrant.rows[0].remaining_days) : 0;
+  const remainingDays = Number((totalDays + previousRemaining).toFixed(1));
+  const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;
+
+  await query(
+    `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+    [userId, year, statutoryDays, bonusDays, totalDays, 0, 0, remainingDays, note]
+  );
+
+  return { user_id: userId, year, statutory_days: statutoryDays, bonus_days: bonusDays, total_days: totalDays, used_days: 0, pending_days: 0, remaining_days: remainingDays, calculation_note: note };
+}
+
+export async function updateLeaveGrantBalance(userId: string, year: number, usedDelta: number) {
+  const user = await query(`SELECT hire_date FROM users WHERE id = $1`, [userId]);
+  const hireDate = user.rows[0]?.hire_date || '2020-01-01';
+  await ensureLeaveGrantForUser(userId, hireDate, year);
+
+  const grantResult = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
+  if (grantResult.rows.length === 0) {
+    return null;
+  }
+
+  const grant = grantResult.rows[0];
+  const updatedUsed = Number(grant.used_days || 0) + usedDelta;
+  const updatedRemaining = Number(grant.total_days || 0) - updatedUsed;
+
+  await query(
+    `UPDATE leave_grants SET used_days = $1, remaining_days = $2 WHERE user_id = $3 AND year = $4`,
+    [updatedUsed, updatedRemaining, userId, year]
+  );
+
+  return { ...grant, used_days: updatedUsed, remaining_days: updatedRemaining };
+}
+
+async function seedDefaultHolidays(activePool: Pool) {
+  const holidays = getDefaultHolidayList(new Date().getFullYear());
+
+  for (const holiday of holidays) {
+    await activePool.query(
+      `INSERT INTO holidays (date, title, is_public, source)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (date) DO NOTHING`,
+      [holiday.date, holiday.title, holiday.is_public, holiday.source]
+    );
+  }
+}
 
 export async function ensureDatabaseSchema() {
   const activePool = getPool();
@@ -111,6 +193,14 @@ export async function ensureDatabaseSchema() {
       '원장'
     ]
   );
+
+  await seedDefaultHolidays(activePool);
+
+  const currentYear = getCurrentYear();
+  const adminUser = await query(`SELECT id, hire_date FROM users WHERE id = $1`, ['usr-coco']);
+  if (adminUser.rows.length > 0) {
+    await ensureLeaveGrantForUser('usr-coco', '2020-01-01', currentYear);
+  }
 }
 
 export async function query<T = any>(text: string, params?: any[]) {
