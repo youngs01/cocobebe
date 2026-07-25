@@ -303,6 +303,18 @@ export default function App() {
   const handleAddHoliday = async (holidayData: { date: string; title: string }) => {
     try {
       setIsProcessing(true);
+      const normalizedHoliday = {
+        date: holidayData.date,
+        title: holidayData.title.trim(),
+        is_public: true,
+        source: 'manual' as const
+      };
+
+      setHolidays(prev => {
+        const withoutSameDate = prev.filter(item => item.date !== normalizedHoliday.date);
+        return [...withoutSameDate, normalizedHoliday].sort((a, b) => a.date.localeCompare(b.date));
+      });
+
       const res = await fetch('/api/holidays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -323,6 +335,7 @@ export default function App() {
   const handleDeleteHoliday = async (date: string) => {
     try {
       setIsProcessing(true);
+      setHolidays(prev => prev.filter(item => item.date !== date));
       const res = await fetch(`/api/holidays/${date}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
