@@ -35,9 +35,20 @@ function calculateServiceInfo(hireDate: string, asOfYear: number) {
   const years = Math.max(0, Math.floor(months / 12));
   const remainingMonths = Math.max(0, months % 12);
 
-  let statutoryDays = 15;
-  if (years >= 1) {
-    statutoryDays = Math.min(25, 15 + Math.max(0, years - 1));
+  // 근로기준법 법정연차 계산
+  let statutoryDays: number;
+  
+  if (years < 1) {
+    // 1년 미만: 1개월마다 1개 (최대 11개)
+    statutoryDays = Math.min(11, remainingMonths);
+  } else if (years < 3) {
+    // 1년 이상 3년 미만: 15개
+    statutoryDays = 15;
+  } else {
+    // 3년 이상: 15개 + (2년마다 1개 추가, 최대 25개)
+    const additionalYears = years - 2;
+    const additional = Math.ceil(additionalYears / 2);
+    statutoryDays = Math.min(25, 15 + additional);
   }
 
   return { years, months: remainingMonths, statutoryDays };
