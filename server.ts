@@ -1,7 +1,6 @@
 import express from 'express';
 import path from 'path';
 import pg from 'pg';
-import { createServer as createViteServer } from 'vite';
 import {
   INITIAL_STAFF,
   INITIAL_LEAVE_REQUESTS,
@@ -766,7 +765,8 @@ app.put('/api/notifications/:id/read', async (req, res) => {
 async function startServer() {
   await ensureDbConnected();
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (!isVercelRuntime && process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

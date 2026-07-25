@@ -35,7 +35,6 @@ module.exports = __toCommonJS(server_exports);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_pg = __toESM(require("pg"), 1);
-var import_vite = require("vite");
 
 // src/data/initialData.ts
 var INITIAL_STAFF = [];
@@ -717,8 +716,9 @@ app.put("/api/notifications/:id/read", async (req, res) => {
 });
 async function startServer() {
   await ensureDbConnected();
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
+  if (!isVercelRuntime && process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });
