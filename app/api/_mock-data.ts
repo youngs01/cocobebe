@@ -1,7 +1,7 @@
 export const adminUser = {
   id: 'usr-coco',
   login_id: 'coco',
-  name: '최영삼',
+  name: '관리자',
   role: 'manager',
   position: '원장',
   hire_date: '2020-01-01',
