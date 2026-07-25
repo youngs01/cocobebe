@@ -63,7 +63,7 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
   const holidays: HolidaySeed[] = [];
   const holidaySet = new Set<string>();
 
-  // 주요 공휴일 추가 (양력)
+  // 1단계: 모든 기본 공휴일 추가
   const baseHolidays = [
     { date: `${year}-01-01`, title: '신정' },
     { date: lunar.seolnal, title: '설날' },
@@ -77,7 +77,7 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
     { date: `${year}-12-25`, title: '성탄절' },
   ];
 
-  // 설날 전후 연휴 (음력 기반)
+  // 설날 전후 연휴
   const seolnalBefore = new Date(`${lunar.seolnal}T00:00:00Z`);
   seolnalBefore.setUTCDate(seolnalBefore.getUTCDate() - 1);
   const seolnalBeforeStr = seolnalBefore.toISOString().split('T')[0];
@@ -86,7 +86,7 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
   seolnalAfter.setUTCDate(seolnalAfter.getUTCDate() + 1);
   const seolnalAfterStr = seolnalAfter.toISOString().split('T')[0];
 
-  // 추석 전후 연휴 (음력 기반)
+  // 추석 전후 연휴
   const chuseokBefore = new Date(`${lunar.chuseok}T00:00:00Z`);
   chuseokBefore.setUTCDate(chuseokBefore.getUTCDate() - 1);
   const chuseokBeforeStr = chuseokBefore.toISOString().split('T')[0];
@@ -95,73 +95,57 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
   chuseokAfter.setUTCDate(chuseokAfter.getUTCDate() + 1);
   const chuseokAfterStr = chuseokAfter.toISOString().split('T')[0];
 
-  // 기본 공휴일 추가
+  // 모든 기본 공휴일과 연휴 추가
   baseHolidays.forEach(h => {
     holidays.push({ date: h.date, title: h.title, is_public: true, source: 'seed' });
     holidaySet.add(h.date);
   });
 
-  // 설날 연휴 추가
   holidays.push({ date: seolnalBeforeStr, title: '설날 전날', is_public: true, source: 'seed' });
   holidays.push({ date: seolnalAfterStr, title: '설날 다음날', is_public: true, source: 'seed' });
   holidaySet.add(seolnalBeforeStr);
   holidaySet.add(seolnalAfterStr);
 
-  // 추석 연휴 추가
   holidays.push({ date: chuseokBeforeStr, title: '추석 전날', is_public: true, source: 'seed' });
   holidays.push({ date: chuseokAfterStr, title: '추석 다음날', is_public: true, source: 'seed' });
   holidaySet.add(chuseokBeforeStr);
   holidaySet.add(chuseokAfterStr);
 
-  // 대체휴무일 계산
-  const substitutes: { date: string; title: string }[] = [];
+  // 2단계: 대체휴무일 계산 및 추가
 
-  // 어린이날 대체공휴일 (토요일 또는 다른 공휴일과 겹치면)
-  if (isWeekend(`${year}-05-05`) || holidaySet.has(`${year}-05-05`)) {
+  // 어린이날 대체공휴일 (5월 5일이 토요일 또는 일요일이면)
+  if (isWeekend(`${year}-05-05`)) {
     const childrensDaySubstitute = getNextNonHolidayDate(`${year}-05-05`, holidaySet);
     if (!holidaySet.has(childrensDaySubstitute)) {
-      substitutes.push({ date: childrensDaySubstitute, title: '어린이날 대체공휴일' });
+      holidays.push({ date: childrensDaySubstitute, title: '어린이날 대체공휴일', is_public: true, source: 'seed' });
       holidaySet.add(childrensDaySubstitute);
     }
   }
 
   // 국경일 대체공휴일 (토·일요일과 겹치면 그 다음 월요일)
-  const nationalHolidaysForSubstitute = [
-    { date: `${year}-03-01`, title: '삼일절' },
-    { date: `${year}-08-15`, title: '광복절' },
-    { date: `${year}-10-03`, title: '개천절' },
-    { date: `${year}-10-09`, title: '한글날' },
+  const nationalHolidayDates = [
+    `${year}-03-01`, // 삼일절
+    `${year}-08-15`, // 광복절
+    `${year}-10-03`, // 개천절
+    `${year}-10-09`, // 한글날
   ];
 
-  nationalHolidaysForSubstitute.forEach(h => {
-    const substitute = getNationalHolidaySubstitute(h.date, holidaySet);
-    if (substitute && !holidaySet.has(substitute)) {
-      substitutes.push({ date: substitute, title: `${h.title} 대체공휴일` });
-      holidaySet.add(substitute);
-    }
-  });
+  const nationalHolidayNames: Record<string, string> = {
+    [`${year}-03-01`]: '삼일절',
+    [`${year}-08-15`]: '광복절',
+    [`${year}-10-03`]: '개천절',
+    [`${year}-10-09`]: '한글날',
+  };
 
-  // 설날/추석 연휴 대체공휴일 (다른 공휴일과 겹치면 그 다음 첫 번째 비공휴일)
-  const lunarConnectedDates = [
-    { dates: [seolnalBeforeStr, lunar.seolnal, seolnalAfterStr], prefix: '설날' },
-    { dates: [chuseokBeforeStr, lunar.chuseok, chuseokAfterStr], prefix: '추석' },
-  ];
-
-  lunarConnectedDates.forEach(({ dates, prefix }) => {
-    dates.forEach(date => {
-      if (holidaySet.has(date) && (isWeekend(date) || dates.some(d => d !== date && holidaySet.has(d)))) {
-        const substitute = getNextNonHolidayDate(date, holidaySet);
-        if (!holidaySet.has(substitute)) {
-          substitutes.push({ date: substitute, title: `${prefix} 대체공휴일` });
-          holidaySet.add(substitute);
-        }
+  nationalHolidayDates.forEach(dateStr => {
+    if (isWeekend(dateStr)) {
+      const substitute = getNationalHolidaySubstitute(dateStr, holidaySet);
+      if (substitute && !holidaySet.has(substitute)) {
+        const name = nationalHolidayNames[dateStr];
+        holidays.push({ date: substitute, title: `${name} 대체공휴일`, is_public: true, source: 'seed' });
+        holidaySet.add(substitute);
       }
-    });
-  });
-
-  // 대체휴무일 추가
-  substitutes.forEach(s => {
-    holidays.push({ date: s.date, title: s.title, is_public: true, source: 'seed' });
+    }
   });
 
   return holidays.sort((a, b) => a.date.localeCompare(b.date));
