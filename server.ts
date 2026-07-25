@@ -23,10 +23,7 @@ const isVercelRuntime = Boolean(process.env.VERCEL);
 app.use(express.json());
 
 // Dedicated Neon PostgreSQL Connection String
-const NEON_PG_URL =
-  process.env.POSTGRES_URL ||
-  process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_pcPJ8bB4IlRu@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+const NEON_PG_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || '';
 
 // Local Fallback State
 let localStore = {
@@ -241,8 +238,8 @@ app.use('/api', async (req, res, next) => {
 // Admin Auth
 app.post('/api/admin/login', (req, res) => {
   const { adminId, adminPassword } = req.body;
-  const targetId = process.env.ADMIN_ID || 'cocobebe';
-  const targetPass = process.env.ADMIN_PASSWORD || 'Dbsgofks03!';
+  const targetId = process.env.ADMIN_ID || '';
+  const targetPass = process.env.ADMIN_PASSWORD || '';
 
   if (adminId === targetId && adminPassword === targetPass) {
     return res.json({ success: true, message: '로그인 성공' });
@@ -427,8 +424,8 @@ app.post('/api/staff/login', async (req, res) => {
     }
 
     // Check super admin credentials
-    const targetAdminId = process.env.ADMIN_ID || 'cocobebe';
-    const targetAdminPass = process.env.ADMIN_PASSWORD || 'Dbsgofks03!';
+    const targetAdminId = process.env.ADMIN_ID || '';
+    const targetAdminPass = process.env.ADMIN_PASSWORD || '';
 
     if (loginId === targetAdminId && loginPassword === targetAdminPass) {
       return res.json({

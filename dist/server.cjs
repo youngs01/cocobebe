@@ -55,7 +55,7 @@ var app = (0, import_express.default)();
 var PORT = Number(process.env.PORT) || 3e3;
 var isVercelRuntime = Boolean(process.env.VERCEL);
 app.use(import_express.default.json());
-var NEON_PG_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || "postgresql://neondb_owner:npg_pcPJ8bB4IlRu@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+var NEON_PG_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || "";
 var localStore = {
   staff: [...INITIAL_STAFF],
   leaveRequests: [...INITIAL_LEAVE_REQUESTS],
@@ -248,8 +248,8 @@ app.use("/api", async (req, res, next) => {
 });
 app.post("/api/admin/login", (req, res) => {
   const { adminId, adminPassword } = req.body;
-  const targetId = process.env.ADMIN_ID || "cocobebe";
-  const targetPass = process.env.ADMIN_PASSWORD || "Dbsgofks03!";
+  const targetId = process.env.ADMIN_ID || "";
+  const targetPass = process.env.ADMIN_PASSWORD || "";
   if (adminId === targetId && adminPassword === targetPass) {
     return res.json({ success: true, message: "\uB85C\uADF8\uC778 \uC131\uACF5" });
   } else {
@@ -416,8 +416,8 @@ app.post("/api/staff/login", async (req, res) => {
     if (!loginId || !loginPassword) {
       return res.status(400).json({ success: false, message: "\uC544\uC774\uB514\uC640 \uBE44\uBC00\uBC88\uD638\uB97C \uBAA8\uB450 \uC785\uB825\uD574\uC8FC\uC138\uC694." });
     }
-    const targetAdminId = process.env.ADMIN_ID || "cocobebe";
-    const targetAdminPass = process.env.ADMIN_PASSWORD || "Dbsgofks03!";
+    const targetAdminId = process.env.ADMIN_ID || "";
+    const targetAdminPass = process.env.ADMIN_PASSWORD || "";
     if (loginId === targetAdminId && loginPassword === targetAdminPass) {
       return res.json({
         success: true,
