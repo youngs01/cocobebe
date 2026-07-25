@@ -59,9 +59,15 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
   let workingDayCount = 0;
   const currentMonthHolidays: Holiday[] = [];
 
+  // 공휴일 날짜를 정규화 (YYYY-MM-DD 형식)
+  const normalizedHolidays = holidays.map(h => ({
+    ...h,
+    date: h.date.includes('T') ? h.date.split('T')[0] : h.date
+  }));
+
   monthDays.forEach((day) => {
     const dStr = format(day, 'yyyy-MM-dd');
-    const holiday = holidays.find((h) => h.date === dStr && h.is_public);
+    const holiday = normalizedHolidays.find((h) => h.date === dStr && h.is_public);
     if (holiday) {
       currentMonthHolidays.push(holiday);
     }
@@ -77,7 +83,7 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
   const handleOpenShiftModal = (dateStr: string) => {
     setSelectedDate(dateStr);
     setTargetUserId(users.find(u => u.role === 'teacher')?.id || currentUser.id);
-    const existingHoliday = holidays.find(h => h.date === dateStr && h.is_public);
+    const existingHoliday = normalizedHolidays.find(h => h.date === dateStr && h.is_public);
     setQuickHolidayTitle(existingHoliday ? existingHoliday.title : '지정 휴원일');
     setIsShiftModalOpen(true);
   };
@@ -246,8 +252,8 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
             const isSun = day.getDay() === 0;
             const isSat = day.getDay() === 6;
 
-            // Find holiday matching date
-            const holiday = holidays.find((h) => h.date === dateStr && h.is_public);
+            // Find holiday matching date (정규화된 날짜 사용)
+            const holiday = normalizedHolidays.find((h) => h.date === dateStr && h.is_public);
             const isRedDay = isSun || Boolean(holiday);
 
             // Find schedules for this date
@@ -330,10 +336,10 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
                   빨간날 / 지정휴원일 즉시 설정
                 </div>
 
-                {holidays.some(h => h.date === selectedDate && h.is_public) ? (
+                {normalizedHolidays.some(h => h.date === selectedDate && h.is_public) ? (
                   <div className="flex items-center justify-between bg-white p-2 rounded-lg border border-rose-200">
                     <span className="font-bold text-rose-700">
-                      🔴 현재 빨간날 지정됨: {holidays.find(h => h.date === selectedDate)?.title}
+                      🔴 현재 빨간날 지정됨: {normalizedHolidays.find(h => h.date === selectedDate)?.title}
                     </span>
                     <button
                       type="button"
