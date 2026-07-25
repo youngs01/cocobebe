@@ -126,7 +126,9 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   const openEditModal = (user: User) => {
     setEditingUser(user);
     setEditName(user.name);
-    setEditHireDate(user.hire_date);
+    // hire_date를 YYYY-MM-DD 형식으로 변환 (date input용)
+    const hireDatePart = user.hire_date.includes('T') ? user.hire_date.split('T')[0] : user.hire_date;
+    setEditHireDate(hireDatePart);
     setEditDept(user.department || '');
     setEditPosition(user.position || (user.role === 'director' ? '원장' : '교사'));
     setEditPhone(user.phone || '');

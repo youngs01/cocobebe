@@ -289,8 +289,11 @@ export default function App() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      alert(data.message);
-      await fetchData();
+      // 로컬 상태 업데이트 (API 응답 사용)
+      if (data.user) {
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...data.user } : u));
+      }
+      alert(data.message || '교직원 정보가 업데이트되었습니다.');
     } catch (err: any) {
       alert(err.message || '교직원 정보 수정 실패');
     } finally {
