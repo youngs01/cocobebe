@@ -1,6 +1,0 @@
-{
-  "name": "코코베베 어린이집 연차 및 스케줄 관리",
-  "description": "근로기준법 준수 법정연차 자동 생성, 승인/차감/복원, 교사/관리자/원장 역할별 맞춤 UI, 네이버 캘린더 공휴일 동기화 및 스케줄 관리 시스템",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
