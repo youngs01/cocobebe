@@ -21,6 +21,7 @@ interface PolicyAndStaffAdminProps {
   policy: AnnualLeavePolicy;
   dbStatus: DbStatus;
   onAddStaff: (newStaffData: Partial<Staff>) => void;
+  onUpdateStaff?: (id: string, updateData: Partial<Staff>) => void;
   onDeleteStaff: (id: string) => void;
   onUpdatePolicy: (newPolicy: AnnualLeavePolicy) => void;
   onOpenDbModal: () => void;
@@ -42,6 +43,7 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
   policy,
   dbStatus,
   onAddStaff,
+  onUpdateStaff,
   onDeleteStaff,
   onUpdatePolicy,
   onOpenDbModal,
@@ -57,7 +59,14 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
   const [newStaffJoinDate, setNewStaffJoinDate] = useState(new Date().toISOString().split('T')[0]);
   const [newStaffEmail, setNewStaffEmail] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('010-1234-5678');
+  const [newStaffLoginId, setNewStaffLoginId] = useState('');
+  const [newStaffLoginPassword, setNewStaffLoginPassword] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // Edit Staff Credential Modal state
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [editLoginId, setEditLoginId] = useState('');
+  const [editLoginPassword, setEditLoginPassword] = useState('');
 
   // Policy form state
   const [localPolicy, setLocalPolicy] = useState<AnnualLeavePolicy>({ ...policy });
@@ -86,10 +95,34 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
       email: newStaffEmail || `${newStaffName}@cocobebe.child.kr`,
       phone: newStaffPhone,
       manualAdjustment: 0,
+      loginId: newStaffLoginId || undefined,
+      loginPassword: newStaffLoginPassword || undefined,
     });
 
     setNewStaffName('');
+    setNewStaffLoginId('');
+    setNewStaffLoginPassword('');
     setShowAddModal(false);
+  };
+
+  const handleOpenEditModal = (staff: Staff) => {
+    setEditingStaff(staff);
+    setEditLoginId(staff.loginId || '');
+    setEditLoginPassword(staff.loginPassword || '');
+  };
+
+  const handleSaveEditCredentials = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStaff) return;
+
+    if (onUpdateStaff) {
+      onUpdateStaff(editingStaff.id, {
+        loginId: editLoginId,
+        loginPassword: editLoginPassword,
+      });
+    }
+
+    setEditingStaff(null);
   };
 
   const handleSavePolicy = () => {
@@ -144,25 +177,6 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
         </div>
       </div>
 
-      {/* Admin credentials info bar */}
-      <div className="bg-slate-900 text-white p-4 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-md">
-        <div className="flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-amber-400 shrink-0" />
-          <div>
-            <span className="font-bold text-amber-300">관리자 인증 계정:</span> 아이디{' '}
-            <code className="bg-slate-800 px-1.5 py-0.5 rounded text-amber-200 font-mono font-bold">cocobebe</code> / 비밀번호{' '}
-            <code className="bg-slate-800 px-1.5 py-0.5 rounded text-amber-200 font-mono font-bold">Dbsgofks03!</code>
-          </div>
-        </div>
-        {onOpenAdminLogin && (
-          <button
-            onClick={onOpenAdminLogin}
-            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition-colors shrink-0 cursor-pointer"
-          >
-            {isAdminLoggedIn ? '관리자 로그인 상태' : '관리자 계정 로그인'}
-          </button>
-        )}
-      </div>
 
       {/* Staff Management Tab */}
       {activeTab === 'staff' && (
@@ -186,15 +200,16 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                     <th className="py-3.5 px-4">사번 / 성명</th>
                     <th className="py-3.5 px-4">선택 직책</th>
                     <th className="py-3.5 px-4">담당 학급/부서</th>
+                    <th className="py-3.5 px-4">로그인 계정 ID</th>
                     <th className="py-3.5 px-4">입사일</th>
                     <th className="py-3.5 px-4">연락처 / 이메일</th>
-                    <th className="py-3.5 px-4 text-center">직원 삭제</th>
+                    <th className="py-3.5 px-4 text-center">계정/직원 관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {allStaff.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
                         등록된 교직원이 없습니다. 신규 교직원을 등록하세요.
                       </td>
                     </tr>
@@ -225,29 +240,58 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-slate-800">{staff.className}</td>
+                        <td className="py-3.5 px-4">
+                          {staff.loginId ? (
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono text-slate-900 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                {staff.loginId}
+                              </span>
+                              {staff.loginPassword && (
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  (PW: ****)
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-rose-500 font-medium">
+                              미등록 (로그인 불가)
+                            </span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 font-mono text-slate-600">{staff.joinDate}</td>
                         <td className="py-3.5 px-4 text-slate-500 text-[11px]">
                           <div>{staff.phone}</div>
                           <div className="text-[10px] text-slate-400">{staff.email}</div>
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          {staff.role !== 'admin' ? (
+                          <div className="flex items-center justify-center gap-1">
                             <button
-                              onClick={() => {
-                                if (confirm(`${staff.name} 교사를 정말 삭제하시겠습니까?`)) {
-                                  onDeleteStaff(staff.id);
-                                }
-                              }}
-                              className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="직원 삭제"
+                              onClick={() => handleOpenEditModal(staff)}
+                              className="p-1.5 text-amber-700 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-bold border border-amber-200"
+                              title="로그인 아이디/비밀번호 설정"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                              <span>계정 설정</span>
                             </button>
-                          ) : (
-                            <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-400">
-                              원장 (보호)
-                            </span>
-                          )}
+
+                            {staff.role !== 'admin' ? (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`${staff.name} 교사를 정말 삭제하시겠습니까?`)) {
+                                    onDeleteStaff(staff.id);
+                                  }
+                                }}
+                                className="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="직원 삭제"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            ) : (
+                              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-400">
+                                원장
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -542,8 +586,34 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-2 p-3 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center gap-1">
+                    <KeyRound className="w-3.5 h-3.5 text-amber-600" />
+                    로그인 아이디
+                  </label>
+                  <input
+                    type="text"
+                    value={newStaffLoginId}
+                    onChange={(e) => setNewStaffLoginId(e.target.value)}
+                    placeholder="예: teacher01"
+                    className="w-full px-3 py-1.5 border border-amber-300 rounded-xl bg-white font-mono text-xs focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">비밀번호</label>
+                  <input
+                    type="password"
+                    value={newStaffLoginPassword}
+                    onChange={(e) => setNewStaffLoginPassword(e.target.value)}
+                    placeholder="접속 비밀번호"
+                    className="w-full px-3 py-1.5 border border-amber-300 rounded-xl bg-white font-mono text-xs focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900">
-                ✨ 직책 선택에 맞춰 권한과 연차 산정이 자동으로 적용되며, 교직원 본인이 로그인하여 자신의 대시보드를 확인할 수 있습니다.
+                ✨ 아이디/비밀번호를 설정하면 교직원(원장 및 교사)이 본인 계정으로 직접 로그인하여 연차 현황을 확인하고 연차 신청을 할 수 있습니다.
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -559,6 +629,69 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                   className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl cursor-pointer"
                 >
                   직원 저장 완료
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Edit Staff Credential Modal */}
+      {editingStaff && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-slate-900">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                <KeyRound className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm">
+                  {editingStaff.name} ({editingStaff.positionTitle}) 계정 설정
+                </h3>
+                <p className="text-[11px] text-slate-400">원장 및 교사 접속 로그인 정보 등록/변경</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveEditCredentials} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">로그인 아이디 (ID)</label>
+                <input
+                  type="text"
+                  value={editLoginId}
+                  onChange={(e) => setEditLoginId(e.target.value)}
+                  placeholder="예: teacher01 또는 director"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-mono"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">접속 비밀번호 (Password)</label>
+                <input
+                  type="text"
+                  value={editLoginPassword}
+                  onChange={(e) => setEditLoginPassword(e.target.value)}
+                  placeholder="비밀번호 지정 (예: 1234)"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 font-mono"
+                  required
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  * 등록 후 원장 또는 교사가 직접 아이디와 비밀번호로 로그인할 수 있습니다.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingStaff(null)}
+                  className="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl cursor-pointer shadow-xs"
+                >
+                  계정 정보 저장
                 </button>
               </div>
             </form>

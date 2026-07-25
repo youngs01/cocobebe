@@ -13,6 +13,8 @@ export interface Staff {
   manualAdjustment: number; // 수동 추가/차감 연차 일수
   profileImage?: string;
   status: 'active' | 'leave';
+  loginId?: string;
+  loginPassword?: string;
 }
 
 export type LeaveType = 'annual' | 'half_am' | 'half_pm' | 'sick' | 'event' | 'special';
@@ -74,7 +76,7 @@ export interface Notification {
 
 export interface DbStatus {
   connected: boolean;
-  type: 'mongodb' | 'local';
+  type: 'postgresql' | 'mongodb' | 'local';
   connectionString?: string;
   error?: string;
 }

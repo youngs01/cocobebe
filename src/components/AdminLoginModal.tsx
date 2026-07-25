@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Lock, User, KeyRound, AlertCircle, CheckCircle2, ShieldCheck, X } from 'lucide-react';
+import { Lock, User, KeyRound, AlertCircle, ShieldCheck, X, UserCheck } from 'lucide-react';
+import { Staff } from '../types';
 
 interface AdminLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (staff?: Staff, isAdmin?: boolean) => void;
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
@@ -12,8 +13,8 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onClose,
   onLoginSuccess,
 }) => {
-  const [adminId, setAdminId] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [loginId, setLoginId] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -25,45 +26,48 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const res = await fetch('/api/admin/login', {
+      // 1. Try /api/staff/login
+      const res = await fetch('/api/staff/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminId, adminPassword }),
+        body: JSON.stringify({ loginId, loginPassword }),
       });
 
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
           setErrorMsg('');
-          onLoginSuccess();
+          onLoginSuccess(data.staff, data.isAdmin);
           onClose();
-          setAdminId('');
-          setAdminPassword('');
+          setLoginId('');
+          setLoginPassword('');
+          return;
         } else {
           setErrorMsg(data.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
-        }
-      } else {
-        // Fallback validation if server route not available
-        if (adminId === 'cocobebe' && adminPassword === 'Dbsgofks03!') {
-          setErrorMsg('');
-          onLoginSuccess();
-          onClose();
-          setAdminId('');
-          setAdminPassword('');
-        } else {
-          setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+          return;
         }
       }
-    } catch {
-      // Offline fallback
-      if (adminId === 'cocobebe' && adminPassword === 'Dbsgofks03!') {
+
+      // 2. Fallback check for admin
+      if (loginId === 'cocobebe' && loginPassword === 'Dbsgofks03!') {
         setErrorMsg('');
-        onLoginSuccess();
+        onLoginSuccess(undefined, true);
         onClose();
-        setAdminId('');
-        setAdminPassword('');
+        setLoginId('');
+        setLoginPassword('');
       } else {
-        setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+        setErrorMsg('등록되지 않은 아이디이거나 비밀번호가 올바르지 않습니다.');
+      }
+    } catch {
+      // Fallback check
+      if (loginId === 'cocobebe' && loginPassword === 'Dbsgofks03!') {
+        setErrorMsg('');
+        onLoginSuccess(undefined, true);
+        onClose();
+        setLoginId('');
+        setLoginPassword('');
+      } else {
+        setErrorMsg('로그인 처리 중 오류가 발생했습니다.');
       }
     } finally {
       setIsSubmitting(false);
@@ -81,12 +85,12 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
         </button>
 
         <div className="text-center mb-6 pt-2">
-          <div className="w-12 h-12 rounded-2xl bg-slate-900 text-amber-400 mx-auto flex items-center justify-center mb-3 shadow-md">
-            <ShieldCheck className="w-7 h-7" />
+          <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 mx-auto flex items-center justify-center mb-3 shadow-md font-bold">
+            <UserCheck className="w-7 h-7" />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">원장 / 관리자 로그인</h3>
+          <h3 className="text-lg font-bold text-slate-900">원장 / 교직원 로그인</h3>
           <p className="text-xs text-slate-500 mt-1">
-            코코베베 어린이집 교직원 및 연차 통합 관리자 인증
+            등록된 아이디와 비밀번호로 로그인하세요
           </p>
         </div>
 
@@ -99,14 +103,14 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
         <form onSubmit={handleLogin} className="space-y-4 text-xs">
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">관리자 아이디</label>
+            <label className="block font-bold text-slate-700 mb-1.5">로그인 아이디 (ID)</label>
             <div className="relative">
               <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                value={adminId}
-                onChange={(e) => setAdminId(e.target.value)}
-                placeholder="관리자 아이디 입력"
+                value={loginId}
+                onChange={(e) => setLoginId(e.target.value)}
+                placeholder="아이디 입력 (예: director, teacher01)"
                 className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-hidden font-medium text-slate-800"
                 required
               />
@@ -114,13 +118,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">비밀번호</label>
+            <label className="block font-bold text-slate-700 mb-1.5">접속 비밀번호 (Password)</label>
             <div className="relative">
               <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="password"
-                value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
                 placeholder="비밀번호 입력"
                 className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-hidden font-medium text-slate-800"
                 required
@@ -134,9 +138,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Lock className="w-4 h-4 text-amber-400" />
-            {isSubmitting ? '인증 확인 중...' : '관리자 인증 로그인'}
+            {isSubmitting ? '로그인 중...' : '원장 / 교직원 로그인'}
           </button>
         </form>
+
+        <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 text-center">
+          아이디/비밀번호 미등록 시 관리자([사용자 및 정책 행정])에게 등록을 요청하세요.
+        </div>
       </div>
     </div>
   );

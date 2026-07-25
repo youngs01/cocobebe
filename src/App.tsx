@@ -19,7 +19,6 @@ import { LeaveApprovalCenter } from './components/LeaveApprovalCenter';
 import { MonthlyPdfReport } from './components/MonthlyPdfReport';
 import { PolicyAndStaffAdmin } from './components/PolicyAndStaffAdmin';
 import { MobileStaffView } from './components/MobileStaffView';
-import { MongoDbConfigModal } from './components/MongoDbConfigModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 
 const DEFAULT_ADMIN_STAFF: Staff = {
@@ -44,9 +43,9 @@ export default function App() {
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
 
   const [dbStatus, setDbStatus] = useState<DbStatus>({
-    connected: false,
-    type: 'local',
-    connectionString: 'mongodb+srv://sinhan2023_db_user:<db_password>@cluster0.auyca0i.mongodb.net/?appName=Cluster0',
+    connected: true,
+    type: 'postgresql',
+    connectionString: 'postgresql://neondb_owner:****@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require',
   });
 
   const [activeTab, setActiveTab] = useState<number>(0);
@@ -105,6 +104,19 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newStaffData),
+      });
+      fetchAllData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateStaff = async (id: string, updateData: Partial<Staff>) => {
+    try {
+      await fetch(`/api/staff/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
       });
       fetchAllData();
     } catch (err) {
@@ -347,6 +359,7 @@ export default function App() {
                 policy={policy}
                 dbStatus={dbStatus}
                 onAddStaff={handleAddStaff}
+                onUpdateStaff={handleUpdateStaff}
                 onDeleteStaff={handleDeleteStaff}
                 onUpdatePolicy={handleUpdatePolicy}
                 onOpenDbModal={() => setIsDbModalOpen(true)}
@@ -362,19 +375,15 @@ export default function App() {
       <AdminLoginModal
         isOpen={isAdminLoginModalOpen}
         onClose={() => setIsAdminLoginModalOpen(false)}
-        onLoginSuccess={() => {
-          setIsAdminLoggedIn(true);
-          const principal = allStaff.find((s) => s.role === 'admin') || allStaff[0];
-          if (principal) setCurrentStaff(principal);
+        onLoginSuccess={(staff, isAdmin) => {
+          if (isAdmin !== undefined) setIsAdminLoggedIn(isAdmin);
+          if (staff) {
+            setCurrentStaff(staff);
+          } else {
+            const principal = allStaff.find((s) => s.role === 'admin' || s.positionTitle === '원장') || allStaff[0];
+            if (principal) setCurrentStaff(principal);
+          }
         }}
-      />
-
-      {/* MongoDB Config Modal */}
-      <MongoDbConfigModal
-        isOpen={isDbModalOpen}
-        onClose={() => setIsDbModalOpen(false)}
-        dbStatus={dbStatus}
-        onRefreshDbStatus={fetchAllData}
       />
     </div>
   );
