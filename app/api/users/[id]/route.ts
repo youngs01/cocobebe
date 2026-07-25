@@ -21,7 +21,7 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
     // 사용자 업데이트
     const updateResult = await query(
       `UPDATE users 
-       SET name = $1, department = $2, position = $3, phone = $4, email = $5, hire_date = $6, role = $7, updated_at = NOW()
+       SET name = $1, department = $2, position = $3, phone = $4, email = $5, hire_date = $6, role = $7
        WHERE id = $8
        RETURNING id, login_id, name, role, hire_date, department, phone, email, status, position`,
       [name.trim(), department.trim(), position || null, phone || null, email || null, hire_date || null, role || 'teacher', id]
@@ -63,7 +63,7 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     // 사용자를 inactive 상태로 변경 (삭제 대신 비활성화)
     const result = await query(
       `UPDATE users 
-       SET status = 'inactive', updated_at = NOW()
+       SET status = 'inactive'
        WHERE id = $1
        RETURNING id, name, role`,
       [id]
