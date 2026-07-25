@@ -82,7 +82,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   const [editRole, setEditRole] = useState<UserRole>('teacher');
 
   // 직책 정렬 순서 정의
-  const positionOrder = ['관리자', '원장', '교사', '연장교사', '보조교사', '냠냠선생님'];
+  const positionOrder = ['관리자', '원장', '교사', '야간반 교사', '보조교사', '냠냠선생님'];
 
   const getPositionIndex = (user: User) => {
     const displayPosition = user.position || (user.role === 'director' ? '원장' : '교사');
