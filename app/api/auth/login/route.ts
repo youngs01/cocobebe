@@ -7,8 +7,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'DATABASE_URL이 설정되지 않아 로그인할 수 없습니다.' }, { status: 500 });
     }
 
-    await ensureDatabaseSchema();
-
     const body = await request.json().catch(() => ({}));
     const username = typeof body?.username === 'string' ? body.username.trim() : '';
     const password = typeof body?.password === 'string' ? body.password.trim() : '';

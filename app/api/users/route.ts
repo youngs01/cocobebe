@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 
 function calculateYearsOfService(hireDate: string) {
-  const start = new Date(`${hireDate}T00:00:00`);
-  const end = new Date();
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  const years = Math.max(0, Math.floor(months / 12));
-  return { years, months: Math.max(0, months % 12) };
+  const start = new Date(`${hireDate}T00:00:00Z`);
+  const now = new Date();
+  const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const years = Math.max(0, Math.floor(totalMonths / 12));
+  const months = Math.max(0, totalMonths % 12);
+  return { years, months };
 }
 
 export async function GET() {
