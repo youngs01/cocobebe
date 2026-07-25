@@ -19,6 +19,7 @@ import {
 const { Pool } = pg;
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+const isVercelRuntime = Boolean(process.env.VERCEL);
 
 app.use(express.json());
 
@@ -54,7 +55,8 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
     const pool = new Pool({
       connectionString: uri,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: isVercelRuntime ? 2000 : 10000,
+      idleTimeoutMillis: isVercelRuntime ? 1000 : 30000,
     });
 
     const client = await pool.connect();
@@ -224,11 +226,12 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
 // Auto connect on startup
 async function ensureDbConnected() {
   if (activeDbType !== 'local') return;
+  if (isVercelRuntime) return;
   await tryConnectPostgres(currentDbUri);
 }
 
 app.use('/api', async (req, res, next) => {
-  if (activeDbType === 'local') {
+  if (activeDbType === 'local' && !isVercelRuntime) {
     await ensureDbConnected();
   }
   next();

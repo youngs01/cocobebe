@@ -54,6 +54,7 @@ var INITIAL_NOTIFICATIONS = [];
 var { Pool } = import_pg.default;
 var app = (0, import_express.default)();
 var PORT = Number(process.env.PORT) || 3e3;
+var isVercelRuntime = Boolean(process.env.VERCEL);
 app.use(import_express.default.json());
 var NEON_PG_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || "postgresql://neondb_owner:npg_pcPJ8bB4IlRu@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
 var localStore = {
@@ -77,7 +78,8 @@ async function tryConnectPostgres(uri) {
     const pool = new Pool({
       connectionString: uri,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 1e4
+      connectionTimeoutMillis: isVercelRuntime ? 2e3 : 1e4,
+      idleTimeoutMillis: isVercelRuntime ? 1e3 : 3e4
     });
     const client = await pool.connect();
     await client.query("SELECT 1");
@@ -236,10 +238,11 @@ async function tryConnectPostgres(uri) {
 }
 async function ensureDbConnected() {
   if (activeDbType !== "local") return;
+  if (isVercelRuntime) return;
   await tryConnectPostgres(currentDbUri);
 }
 app.use("/api", async (req, res, next) => {
-  if (activeDbType === "local") {
+  if (activeDbType === "local" && !isVercelRuntime) {
     await ensureDbConnected();
   }
   next();
