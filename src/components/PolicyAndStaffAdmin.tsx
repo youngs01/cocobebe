@@ -57,7 +57,6 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
   const [newStaffPosition, setNewStaffPosition] = useState<string>('교사');
   const [newStaffClass, setNewStaffClass] = useState('새싹반 (만3세)');
   const [newStaffJoinDate, setNewStaffJoinDate] = useState(new Date().toISOString().split('T')[0]);
-  const [newStaffEmail, setNewStaffEmail] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('010-1234-5678');
   const [newStaffLoginId, setNewStaffLoginId] = useState('');
   const [newStaffLoginPassword, setNewStaffLoginPassword] = useState('');
@@ -92,7 +91,7 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
       positionTitle: newStaffPosition,
       className: newStaffClass,
       joinDate: newStaffJoinDate,
-      email: newStaffEmail || `${newStaffName}@cocobebe.child.kr`,
+      email: '',
       phone: newStaffPhone,
       manualAdjustment: 0,
       loginId: newStaffLoginId || undefined,
@@ -202,7 +201,7 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                     <th className="py-3.5 px-4">담당 학급/부서</th>
                     <th className="py-3.5 px-4">로그인 계정 ID</th>
                     <th className="py-3.5 px-4">입사일</th>
-                    <th className="py-3.5 px-4">연락처 / 이메일</th>
+                    <th className="py-3.5 px-4">연락처</th>
                     <th className="py-3.5 px-4 text-center">계정/직원 관리</th>
                   </tr>
                 </thead>
@@ -259,9 +258,8 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                           )}
                         </td>
                         <td className="py-3.5 px-4 font-mono text-slate-600">{staff.joinDate}</td>
-                        <td className="py-3.5 px-4 text-slate-500 text-[11px]">
-                          <div>{staff.phone}</div>
-                          <div className="text-[10px] text-slate-400">{staff.email}</div>
+                        <td className="py-3.5 px-4 text-slate-600 text-[11px] font-mono">
+                          {staff.phone || '-'}
                         </td>
                         <td className="py-3.5 px-4 text-center">
                           <div className="flex items-center justify-center gap-1">
@@ -563,27 +561,15 @@ export const PolicyAndStaffAdmin: React.FC<PolicyAndStaffAdminProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">이메일</label>
-                  <input
-                    type="email"
-                    value={newStaffEmail}
-                    onChange={(e) => setNewStaffEmail(e.target.value)}
-                    placeholder="teacher@cocobebe.kr"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">연락처</label>
-                  <input
-                    type="text"
-                    value={newStaffPhone}
-                    onChange={(e) => setNewStaffPhone(e.target.value)}
-                    placeholder="010-0000-0000"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs"
-                  />
-                </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">연락처</label>
+                <input
+                  type="text"
+                  value={newStaffPhone}
+                  onChange={(e) => setNewStaffPhone(e.target.value)}
+                  placeholder="010-0000-0000"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-mono"
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-2 p-3 bg-amber-50/70 border border-amber-200 rounded-2xl">

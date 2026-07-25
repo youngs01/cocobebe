@@ -9,21 +9,19 @@ import {
   Award,
   Sparkles,
 } from 'lucide-react';
-import { Staff, LeaveRequest, AttendanceRecord, AnnualLeavePolicy } from '../types';
+import { Staff, LeaveRequest, AnnualLeavePolicy } from '../types';
 import { calculateAnnualLeave } from '../utils/leaveCalculator';
 import { exportMonthlyReportToPdf } from '../utils/pdfExport';
 
 interface MonthlyPdfReportProps {
   allStaff: Staff[];
   leaveRequests: LeaveRequest[];
-  attendance: AttendanceRecord[];
   policy: AnnualLeavePolicy;
 }
 
 export const MonthlyPdfReport: React.FC<MonthlyPdfReportProps> = ({
   allStaff,
   leaveRequests,
-  attendance,
   policy,
 }) => {
   const [selectedYear, setSelectedYear] = useState('2026');

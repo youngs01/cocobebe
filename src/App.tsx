@@ -10,8 +10,8 @@ import {
   ShieldCheck,
   Lock,
 } from 'lucide-react';
-import { Staff, LeaveRequest, AttendanceRecord, AnnualLeavePolicy, Notification, DbStatus } from './types';
-import { INITIAL_STAFF, INITIAL_LEAVE_REQUESTS, INITIAL_ATTENDANCE, INITIAL_POLICY, INITIAL_NOTIFICATIONS } from './data/initialData';
+import { Staff, LeaveRequest, AnnualLeavePolicy, Notification, DbStatus } from './types';
+import { INITIAL_STAFF, INITIAL_LEAVE_REQUESTS, INITIAL_POLICY, INITIAL_NOTIFICATIONS } from './data/initialData';
 import { Header } from './components/Header';
 import { DashboardOverview } from './components/DashboardOverview';
 import { AnnualLeaveDashboard } from './components/AnnualLeaveDashboard';
@@ -20,10 +20,11 @@ import { MonthlyPdfReport } from './components/MonthlyPdfReport';
 import { PolicyAndStaffAdmin } from './components/PolicyAndStaffAdmin';
 import { MobileStaffView } from './components/MobileStaffView';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { TeacherDashboardView } from './components/TeacherDashboardView';
 
 const DEFAULT_ADMIN_STAFF: Staff = {
   id: 'admin-cocobebe',
-  name: '관리자 (cocobebe)',
+  name: '관리자',
   employeeNumber: 'ADMIN-001',
   role: 'admin',
   positionTitle: '원장',
@@ -126,10 +127,17 @@ export default function App() {
 
   const handleDeleteStaff = async (id: string) => {
     try {
-      await fetch(`/api/staff/${id}`, { method: 'DELETE' });
-      fetchAllData();
+      const res = await fetch(`/api/staff/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAllStaff((prev) => prev.filter((s) => s.id !== id));
+        fetchAllData();
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        alert(`교사 삭제에 실패했습니다: ${errData.error || '오류 발생'}`);
+      }
     } catch (err) {
       console.error(err);
+      alert('교사 삭제 중 네트워크 오류가 발생했습니다.');
     }
   };
 
@@ -211,6 +219,8 @@ export default function App() {
   };
 
   const pendingCount = leaveRequests.filter((r) => r.status === 'pending').length;
+  const isUserAdminOrDirector =
+    isAdminLoggedIn || currentStaff?.role === 'admin' || currentStaff?.positionTitle === '원장';
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-900 selection:bg-amber-200">
@@ -234,71 +244,95 @@ export default function App() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Navigation Tabs Bar */}
         {!isMobileView && (
-          <nav className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 border-b border-slate-200 text-xs font-bold scrollbar-none">
-            <button
-              onClick={() => setActiveTab(0)}
-              className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 0
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              <LayoutDashboard className="w-4 h-4 text-amber-400" />
-              통합 대시보드
-            </button>
+          <nav className="flex items-center justify-between overflow-x-auto pb-4 mb-6 border-b border-slate-200 text-xs font-bold scrollbar-none">
+            {isUserAdminOrDirector ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setActiveTab(0)}
+                  className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                    activeTab === 0
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4 text-amber-400" />
+                  통합 관리 대시보드
+                </button>
 
-            <button
-              onClick={() => setActiveTab(1)}
-              className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 1
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              <Clock className="w-4 h-4 text-amber-400" />
-              법정 연차 관리
-            </button>
+                <button
+                  onClick={() => setActiveTab(1)}
+                  className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                    activeTab === 1
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  전체 교사 연차 관리
+                </button>
 
-            <button
-              onClick={() => setActiveTab(2)}
-              className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 relative ${
-                activeTab === 2
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              <FileCheck2 className="w-4 h-4 text-amber-400" />
-              결재 관리 센터
-              {pendingCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold animate-pulse">
-                  {pendingCount}
-                </span>
-              )}
-            </button>
+                <button
+                  onClick={() => setActiveTab(2)}
+                  className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 relative ${
+                    activeTab === 2
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <FileCheck2 className="w-4 h-4 text-amber-400" />
+                  결재 승인 센터
+                  {pendingCount > 0 && (
+                    <span className="bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold animate-pulse">
+                      {pendingCount}
+                    </span>
+                  )}
+                </button>
 
-            <button
-              onClick={() => setActiveTab(3)}
-              className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 3
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              <FileText className="w-4 h-4 text-amber-400" />
-              월별 연차 보고서 & PDF
-            </button>
+                <button
+                  onClick={() => setActiveTab(3)}
+                  className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                    activeTab === 3
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  월별 보고서 & PDF
+                </button>
 
-            <button
-              onClick={() => setActiveTab(4)}
-              className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-                activeTab === 4
-                  ? 'bg-slate-900 text-white shadow-md'
-                  : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
-              }`}
-            >
-              <Settings className="w-4 h-4 text-amber-400" />
-              사용자 및 정책 행정
-            </button>
+                <button
+                  onClick={() => setActiveTab(4)}
+                  className={`px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
+                    activeTab === 4
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'bg-white text-slate-700 hover:bg-slate-200 border border-slate-200'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 text-amber-400" />
+                  교사 및 정책 행정
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-2">
+                  <span className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4 text-emerald-200" />
+                    교사 전용 대시보드
+                  </span>
+                  <span className="text-xs text-slate-500 font-medium">
+                    ({currentStaff.name} 선생님 / {currentStaff.className})
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => setIsAdminLoginModalOpen(true)}
+                  className="bg-slate-900 text-amber-300 hover:bg-slate-800 border border-amber-400/30 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-400" />
+                  <span>원장/관리자 로그인</span>
+                </button>
+              </div>
+            )}
           </nav>
         )}
 
@@ -311,6 +345,16 @@ export default function App() {
             notifications={notifications}
             policy={policy}
             onSubmitLeaveRequest={handleSubmitLeaveRequest}
+          />
+        ) : !isUserAdminOrDirector ? (
+          <TeacherDashboardView
+            currentStaff={currentStaff}
+            allStaff={allStaff}
+            leaveRequests={leaveRequests}
+            notifications={notifications}
+            policy={policy}
+            onSubmitLeaveRequest={handleSubmitLeaveRequest}
+            onOpenAdminLogin={() => setIsAdminLoginModalOpen(true)}
           />
         ) : (
           <>
@@ -348,7 +392,6 @@ export default function App() {
               <MonthlyPdfReport
                 allStaff={allStaff}
                 leaveRequests={leaveRequests}
-                attendance={[]}
                 policy={policy}
               />
             )}

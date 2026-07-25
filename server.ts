@@ -331,7 +331,7 @@ app.post('/api/staff', async (req, res) => {
       positionTitle: req.body.positionTitle || '교사',
       className: req.body.className || '새싹반',
       joinDate: req.body.joinDate || new Date().toISOString().split('T')[0],
-      email: req.body.email || `${req.body.name.toLowerCase()}@cocobebe.child.kr`,
+      email: req.body.email || '',
       phone: req.body.phone || '010-0000-0000',
       manualAdjustment: Number(req.body.manualAdjustment) || 0,
       status: 'active',
@@ -435,7 +435,7 @@ app.post('/api/staff/login', async (req, res) => {
         message: '관리자로 로그인되었습니다.',
         staff: {
           id: 'admin-cocobebe',
-          name: '김은영 (원장)',
+          name: '관리자',
           employeeNumber: 'ADMIN-001',
           role: 'admin',
           positionTitle: '원장',
@@ -502,14 +502,39 @@ app.post('/api/staff/login', async (req, res) => {
 app.delete('/api/staff/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('[DELETE /api/staff/:id] Request to delete staff ID:', id);
+
     if (activeDbType === 'postgresql' && pgPool) {
-      await pgPool.query('DELETE FROM staff WHERE id = $1', [id]);
-    } else {
-      localStore.staff = localStore.staff.filter((s) => s.id !== id);
+      // Clean up substitute teacher references
+      await pgPool
+        .query('UPDATE leave_requests SET "substituteTeacherId" = NULL WHERE "substituteTeacherId" = $1', [id])
+        .catch(() => {});
+      await pgPool
+        .query('UPDATE leave_requests SET substituteteacherid = NULL WHERE substituteteacherid = $1', [id])
+        .catch(() => {});
+
+      // Clean up leave requests
+      await pgPool.query('DELETE FROM leave_requests WHERE "staffId" = $1', [id]).catch(() => {});
+      await pgPool.query('DELETE FROM leave_requests WHERE staffid = $1', [id]).catch(() => {});
+
+      // Clean up notifications
+      await pgPool.query('DELETE FROM notifications WHERE "staffId" = $1', [id]).catch(() => {});
+      await pgPool.query('DELETE FROM notifications WHERE staffid = $1', [id]).catch(() => {});
+
+      // Delete staff record
+      const result = await pgPool.query('DELETE FROM staff WHERE id = $1', [id]);
+      console.log(`[DELETE /api/staff/:id] Deleted ${result.rowCount} row(s) from staff table.`);
     }
-    res.json({ success: true, message: '삭제되었습니다.' });
+
+    // Always clean up localStore as well
+    localStore.staff = localStore.staff.filter((s) => s.id !== id);
+    localStore.leaveRequests = localStore.leaveRequests.filter((r) => r.staffId !== id);
+    localStore.notifications = localStore.notifications.filter((n) => n.staffId !== id);
+
+    return res.json({ success: true, message: '교사 계정이 성공적으로 삭제되었습니다.' });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error('Error deleting staff:', err);
+    return res.status(500).json({ error: err.message || '교사 삭제 중 오류가 발생했습니다.' });
   }
 });
 

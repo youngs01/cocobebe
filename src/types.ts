@@ -42,19 +42,6 @@ export interface LeaveRequest {
   deductedFromNextYear?: boolean; // 음수 연차 차감 대상 여부
 }
 
-export type AttendanceStatus = 'present' | 'late' | 'early_leave' | 'leave' | 'absent';
-
-export interface AttendanceRecord {
-  id: string;
-  staffId: string;
-  staffName: string;
-  date: string; // YYYY-MM-DD
-  checkIn?: string; // HH:mm
-  checkOut?: string; // HH:mm
-  status: AttendanceStatus;
-  note?: string;
-}
-
 export interface AnnualLeavePolicy {
   negativeDeductionEnabled: boolean; // 음수 연차 발생 시 다음 년도 연차 자동 차감
   rolloverMode: 'none' | 'limited' | 'unlimited'; // 전액 소멸, 제한 이월, 무제한 이월

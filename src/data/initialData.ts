@@ -1,4 +1,4 @@
-import { Staff, LeaveRequest, AttendanceRecord, AnnualLeavePolicy, Notification } from '../types';
+import { Staff, LeaveRequest, AnnualLeavePolicy, Notification } from '../types';
 
 export const INITIAL_STAFF: Staff[] = [];
 
@@ -12,7 +12,5 @@ export const INITIAL_POLICY: AnnualLeavePolicy = {
 };
 
 export const INITIAL_LEAVE_REQUESTS: LeaveRequest[] = [];
-
-export const INITIAL_ATTENDANCE: AttendanceRecord[] = [];
 
 export const INITIAL_NOTIFICATIONS: Notification[] = [];
