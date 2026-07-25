@@ -113,12 +113,12 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
 
   // 2단계: 대체휴무일 계산 및 추가
 
-  // 어린이날 대체공휴일 (5월 5일이 토요일 또는 일요일이면)
+  // 어린이날 대체공휴일 (5월 5일이 토요일 또는 일요일이면 그 다음 월요일)
   if (isWeekend(`${year}-05-05`)) {
-    const childrensDaySubstitute = getNextNonHolidayDate(`${year}-05-05`, holidaySet);
-    if (!holidaySet.has(childrensDaySubstitute)) {
-      holidays.push({ date: childrensDaySubstitute, title: '어린이날 대체공휴일', is_public: true, source: 'seed' });
-      holidaySet.add(childrensDaySubstitute);
+    const substitute = getNationalHolidaySubstitute(`${year}-05-05`, holidaySet);
+    if (substitute && !holidaySet.has(substitute)) {
+      holidays.push({ date: substitute, title: '어린이날 대체공휴일', is_public: true, source: 'seed' });
+      holidaySet.add(substitute);
     }
   }
 
