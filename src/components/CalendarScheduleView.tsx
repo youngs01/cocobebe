@@ -109,6 +109,8 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
     if (onAddHoliday) {
       await onAddHoliday({ date: newHolidayDate, title: newHolidayTitle.trim() });
       setNewHolidayTitle('');
+      setNewHolidayDate(format(new Date(), 'yyyy-MM-dd'));
+      setIsHolidayModalOpen(false);
     }
   };
 
@@ -498,25 +500,29 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
                 </div>
 
                 <div className="max-h-60 overflow-y-auto space-y-1.5 border border-[#E9EDC9] rounded-xl p-2 bg-[#FDFCF8]">
-                  {holidays.map((h) => (
-                    <div
-                      key={h.date}
-                      className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E9EDC9] text-xs"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-rose-600 w-24 shrink-0">{h.date}</span>
-                        <span className="font-semibold text-[#344E41]">{h.title}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHolidayClick(h.date)}
-                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-lg transition-colors cursor-pointer"
-                        title="빨간날 해제"
+                  {holidays.map((h) => {
+                    // 날짜를 YYYY-MM-DD 형식으로 변환
+                    const displayDate = h.date.includes('T') ? h.date.split('T')[0] : h.date;
+                    return (
+                      <div
+                        key={h.date}
+                        className="flex items-center justify-between p-2 rounded-lg bg-white border border-[#E9EDC9] text-xs"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-rose-600 w-24 shrink-0">{displayDate}</span>
+                          <span className="font-semibold text-[#344E41]">{h.title}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHolidayClick(h.date)}
+                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-1 rounded-lg transition-colors cursor-pointer"
+                          title="빨간날 해제"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

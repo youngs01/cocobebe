@@ -370,8 +370,18 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(holidayData)
       });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const data = await res.json();
+          throw new Error(data.error || '휴일 등록 실패');
+        } else {
+          throw new Error('서버 응답 오류 - 잠시 후 다시 시도해주세요.');
+        }
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       alert('휴일이 추가되었습니다.');
     } catch (err: any) {
       // 실패하면 로컬 상태 원상복구
