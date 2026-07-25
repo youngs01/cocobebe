@@ -116,6 +116,19 @@ app.use('/api', async (req, res, next) => {
 
 // --- API ROUTES ---
 
+// Admin Auth
+app.post('/api/admin/login', (req, res) => {
+  const { adminId, adminPassword } = req.body;
+  const targetId = process.env.ADMIN_ID || 'cocobebe';
+  const targetPass = process.env.ADMIN_PASSWORD || 'Dbsgofks03!';
+
+  if (adminId === targetId && adminPassword === targetPass) {
+    return res.json({ success: true, message: '로그인 성공' });
+  } else {
+    return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+  }
+});
+
 // DB Status & Config
 app.get('/api/db/status', (req, res) => {
   const maskedUri = currentDbUri.replace(/:([^@]+)@/, ':****@');

@@ -38,7 +38,7 @@ const DEFAULT_ADMIN_STAFF: Staff = {
 
 export default function App() {
   const [allStaff, setAllStaff] = useState<Staff[]>(INITIAL_STAFF);
-  const [currentStaff, setCurrentStaff] = useState<Staff>(DEFAULT_ADMIN_STAFF);
+  const [currentStaff, setCurrentStaff] = useState<Staff>(INITIAL_STAFF[0] || DEFAULT_ADMIN_STAFF);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(INITIAL_LEAVE_REQUESTS);
   const [policy, setPolicy] = useState<AnnualLeavePolicy>(INITIAL_POLICY);
   const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
@@ -53,7 +53,7 @@ export default function App() {
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
   const [isDbModalOpen, setIsDbModalOpen] = useState<boolean>(false);
   const [isAdminLoginModalOpen, setIsAdminLoginModalOpen] = useState<boolean>(false);
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(true); // Pre-authenticated for convenience or modal login
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(false); // Starts unauthenticated - user must log in via modal
   const [loading, setLoading] = useState<boolean>(true);
 
   // Fetch initial data from backend API

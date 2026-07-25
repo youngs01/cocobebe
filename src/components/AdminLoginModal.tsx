@@ -15,19 +15,58 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const [adminId, setAdminId] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminId === 'cocobebe' && adminPassword === 'Dbsgofks03!') {
-      setErrorMsg('');
-      onLoginSuccess();
-      onClose();
-      setAdminId('');
-      setAdminPassword('');
-    } else {
-      setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+    setErrorMsg('');
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminId, adminPassword }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setErrorMsg('');
+          onLoginSuccess();
+          onClose();
+          setAdminId('');
+          setAdminPassword('');
+        } else {
+          setErrorMsg(data.message || '아이디 또는 비밀번호가 올바르지 않습니다.');
+        }
+      } else {
+        // Fallback validation if server route not available
+        if (adminId === 'cocobebe' && adminPassword === 'Dbsgofks03!') {
+          setErrorMsg('');
+          onLoginSuccess();
+          onClose();
+          setAdminId('');
+          setAdminPassword('');
+        } else {
+          setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+        }
+      }
+    } catch {
+      // Offline fallback
+      if (adminId === 'cocobebe' && adminPassword === 'Dbsgofks03!') {
+        setErrorMsg('');
+        onLoginSuccess();
+        onClose();
+        setAdminId('');
+        setAdminPassword('');
+      } else {
+        setErrorMsg('아이디 또는 비밀번호가 올바르지 않습니다.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -67,7 +106,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 type="text"
                 value={adminId}
                 onChange={(e) => setAdminId(e.target.value)}
-                placeholder="관리자 아이디 입력 (cocobebe)"
+                placeholder="관리자 아이디 입력"
                 className="w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-hidden font-medium text-slate-800"
                 required
               />
@@ -89,16 +128,13 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             </div>
           </div>
 
-          <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 leading-relaxed">
-            💡 <span className="font-bold">관리자 계정 안내</span>: 아이디 <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">cocobebe</code> / 비밀번호 <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">Dbsgofks03!</code>
-          </div>
-
           <button
             type="submit"
-            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+            disabled={isSubmitting}
+            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <Lock className="w-4 h-4 text-amber-400" />
-            관리자 인증 로그인
+            {isSubmitting ? '인증 확인 중...' : '관리자 인증 로그인'}
           </button>
         </form>
       </div>
