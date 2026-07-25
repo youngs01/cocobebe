@@ -81,13 +81,27 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('teacher');
 
-  const filteredUsers = users.filter((u) => {
-    return (
-      u.name.includes(searchTerm) ||
-      u.department.includes(searchTerm) ||
-      (u.position && u.position.includes(searchTerm))
-    );
-  });
+  // 직책 정렬 순서 정의
+  const positionOrder = ['관리자', '원장', '교사', '연장교사', '보조교사', '냠냠선생님'];
+
+  const getPositionIndex = (user: User) => {
+    const displayPosition = user.position || (user.role === 'director' ? '원장' : '교사');
+    return positionOrder.indexOf(displayPosition);
+  };
+
+  const filteredAndSortedUsers = users
+    .filter((u) => {
+      return (
+        u.name.includes(searchTerm) ||
+        u.department.includes(searchTerm) ||
+        (u.position && u.position.includes(searchTerm))
+      );
+    })
+    .sort((a, b) => {
+      const aIndex = getPositionIndex(a);
+      const bIndex = getPositionIndex(b);
+      return aIndex - bIndex;
+    });
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,13 +224,13 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
           />
         </div>
         <span className="text-xs text-[#718355] font-semibold">
-          총 {filteredUsers.length}명 교직원
+          총 {filteredAndSortedUsers.length}명 교직원
         </span>
       </div>
 
       {/* Teacher Roster Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredUsers.map((u) => {
+        {filteredAndSortedUsers.map((u) => {
           const displayPosition = u.position || (u.role === 'director' ? '원장' : '교사');
           const { years: tenureYears, months: tenureMonths } = calculateTenure(u.hire_date);
           return (
