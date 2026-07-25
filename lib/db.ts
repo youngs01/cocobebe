@@ -3,20 +3,33 @@ import 'dotenv/config';
 
 const connectionString = process.env.DATABASE_URL;
 
-export const pool = connectionString
-  ? new Pool({
+let poolInstance: Pool | null = null;
+
+function getPool() {
+  if (!connectionString) {
+    return null;
+  }
+
+  if (!poolInstance) {
+    poolInstance = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
       connectionTimeoutMillis: 10000,
-    })
-  : null;
+    });
+  }
+
+  return poolInstance;
+}
+
+export const pool = getPool();
 
 export async function ensureDatabaseSchema() {
-  if (!pool) {
+  const activePool = getPool();
+  if (!activePool) {
     return;
   }
 
-  await pool.query(`
+  await activePool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(50) PRIMARY KEY,
       login_id VARCHAR(50) UNIQUE,
@@ -80,7 +93,7 @@ export async function ensureDatabaseSchema() {
     );
   `);
 
-  await pool.query(
+  await activePool.query(
     `INSERT INTO users (id, login_id, password, name, role, hire_date, department, phone, email, status, position)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      ON CONFLICT (id) DO NOTHING`,
@@ -101,11 +114,12 @@ export async function ensureDatabaseSchema() {
 }
 
 export async function query<T = any>(text: string, params?: any[]) {
-  if (!pool) {
+  const activePool = getPool();
+  if (!activePool) {
     throw new Error('DATABASE_URL is not configured');
   }
 
-  const client = await pool.connect();
+  const client = await activePool.connect();
   try {
     const result = await client.query(text, params);
     return result as { rows: T[] };
