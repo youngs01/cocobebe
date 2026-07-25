@@ -38,7 +38,14 @@ const POSITION_OPTIONS = [
   '야간반 교사',
   '냠냠선생님'
 ];
-
+function calculateTenure(hireDate: string) {
+  const start = new Date(`${hireDate}T00:00:00Z`);
+  const now = new Date();
+  const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const years = Math.max(0, Math.floor(totalMonths / 12));
+  const months = Math.max(0, totalMonths % 12);
+  return { years, months };
+}
 export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   users,
   currentUser,
@@ -207,6 +214,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredUsers.map((u) => {
           const displayPosition = u.position || (u.role === 'director' ? '원장' : '교사');
+          const { years: tenureYears, months: tenureMonths } = calculateTenure(u.hire_date);
           return (
             <div
               key={u.id}
@@ -262,9 +270,9 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                 <div className="flex justify-between text-[#718355]">
                   <span>근속기간:</span>
                   <strong className="text-[#344E41] font-bold">
-                    {u.years_of_service > 0
-                      ? `${u.years_of_service}년차 (${u.months_of_service}개월)`
-                      : `${u.months_of_service}개월차 (1년미만)`}
+                    {tenureYears > 0
+                      ? `${tenureYears}년차 (${tenureMonths}개월)`
+                      : `${tenureMonths}개월차 (1년미만)`}
                   </strong>
                 </div>
               </div>
