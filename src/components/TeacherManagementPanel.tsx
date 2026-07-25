@@ -39,7 +39,9 @@ const POSITION_OPTIONS = [
   '냠냠선생님'
 ];
 function calculateTenure(hireDate: string) {
-  const start = new Date(`${hireDate}T00:00:00Z`);
+  // Extract date part only (YYYY-MM-DD)
+  const datePart = hireDate.includes('T') ? hireDate.split('T')[0] : hireDate;
+  const start = new Date(`${datePart}T00:00:00Z`);
   const now = new Date();
   const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
   const years = Math.max(0, Math.floor(totalMonths / 12));
@@ -265,7 +267,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
               <div className="bg-[#FDFCF8] rounded-xl p-2.5 border border-[#E9EDC9] text-xs space-y-1">
                 <div className="flex justify-between text-[#718355]">
                   <span>입사일:</span>
-                  <strong className="text-[#344E41]">{u.hire_date}</strong>
+                  <strong className="text-[#344E41]">{u.hire_date.includes('T') ? u.hire_date.split('T')[0] : u.hire_date}</strong>
                 </div>
                 <div className="flex justify-between text-[#718355]">
                   <span>근속기간:</span>
@@ -309,12 +311,6 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                     승인대기: <strong>{u.pending_days}일</strong>
                   </span>
                 </div>
-              </div>
-
-              {/* Calculation Legal Note */}
-              <div className="text-[10px] text-[#344E41] bg-[#F1F3E9] p-2 rounded-lg border border-[#E9EDC9] leading-relaxed">
-                <span className="font-semibold text-[#718355] block">근로기준법 계산 근거:</span>
-                {u.calculation_note}
               </div>
 
               {/* Card Footer Actions */}

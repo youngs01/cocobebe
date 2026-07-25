@@ -76,7 +76,52 @@ export default function App() {
     if (user.role === 'director') setActiveTab('director_dashboard');
     else if (user.role === 'manager') setActiveTab('approval');
     else setActiveTab('my_leave');
-    fetchData();
+    // 필수 데이터만 먼저 로드 (더 빠른 로그인)
+    fetchEssentialData();
+  };
+
+  // 로그인 후 필수 데이터 빠르게 로드
+  const fetchEssentialData = async () => {
+    try {
+      setIsLoading(true);
+      // users와 leave-requests만 먼저 로드 (필수)
+      const [usersRes, reqsRes] = await Promise.all([
+        fetch('/api/users').then(r => r.json()),
+        fetch('/api/leave-requests').then(r => r.json())
+      ]);
+      
+      const fetchedUsers = Array.isArray(usersRes) ? usersRes : [];
+      const fetchedLeaveRequests = Array.isArray(reqsRes) ? reqsRes : [];
+      
+      setUsers(fetchedUsers);
+      setLeaveRequests(fetchedLeaveRequests);
+      
+      // holidays와 schedules는 백그라운드에서 나중에 로드
+      loadOptionalData();
+    } catch (err) {
+      console.error('Failed to fetch essential data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 선택 데이터 백그라운드 로드 (holidays, schedules)
+  const loadOptionalData = async () => {
+    try {
+      const [holRes, schRes, healthRes] = await Promise.all([
+        fetch('/api/holidays').then(r => r.json()),
+        fetch('/api/schedules').then(r => r.json()),
+        fetch('/api/health').then(r => r.json()).catch(() => ({ dbConnected: false }))
+      ]);
+      
+      const fetchedHolidays = Array.isArray(holRes) ? holRes : [];
+      const fetchedSchedules = Array.isArray(schRes) ? schRes : [];
+      
+      setHolidays(fetchedHolidays);
+      setSchedules(fetchedSchedules);
+    } catch (err) {
+      console.error('Failed to fetch optional data:', err);
+    }
   };
 
   const handleLogout = () => {
@@ -310,11 +355,13 @@ export default function App() {
         source: 'manual' as const
       };
 
+      // 로컬 상태 먼저 업데이트 (즉시 화면 반영)
       setHolidays(prev => {
         const withoutSameDate = prev.filter(item => item.date !== normalizedHoliday.date);
         return [...withoutSameDate, normalizedHoliday].sort((a, b) => a.date.localeCompare(b.date));
       });
 
+      // 그 다음 서버에 저장
       const res = await fetch('/api/holidays', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -322,9 +369,10 @@ export default function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      alert(data.message);
-      await fetchData();
+      alert('휴일이 추가되었습니다.');
     } catch (err: any) {
+      // 실패하면 로컬 상태 원상복구
+      setHolidays(prev => prev.filter(item => item.date !== holidayData.date));
       alert(err.message || '휴일 등록 중 오류가 발생했습니다.');
     } finally {
       setIsProcessing(false);
@@ -335,13 +383,17 @@ export default function App() {
   const handleDeleteHoliday = async (date: string) => {
     try {
       setIsProcessing(true);
+      // 로컬 상태 먼저 제거 (즉시 화면에서 사라짐)
       setHolidays(prev => prev.filter(item => item.date !== date));
+      
+      // 그 다음 서버에서 삭제
       const res = await fetch(`/api/holidays/${date}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      alert(data.message);
-      await fetchData();
+      alert('휴일이 삭제되었습니다.');
     } catch (err: any) {
+      // 실패하면 로컬 상태 원상복구
+      await fetchData();
       alert(err.message || '휴일 해제 중 오류가 발생했습니다.');
     } finally {
       setIsProcessing(false);

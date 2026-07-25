@@ -14,6 +14,7 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
     { date: `${year}-05-05`, title: '어린이날', is_public: true, source: 'seed' },
     { date: `${year}-05-06`, title: '어린이날 대체공휴일', is_public: true, source: 'seed' },
     { date: `${year}-06-06`, title: '현충일', is_public: true, source: 'seed' },
+    { date: `${year}-07-17`, title: '제헌절', is_public: true, source: 'seed' },
     { date: `${year}-08-15`, title: '광복절', is_public: true, source: 'seed' },
     { date: `${year}-08-16`, title: '광복절 대체공휴일', is_public: true, source: 'seed' },
     { date: `${year}-09-24`, title: '추석', is_public: true, source: 'seed' },
