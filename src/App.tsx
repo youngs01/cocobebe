@@ -396,16 +396,21 @@ export default function App() {
   const handleDeleteHoliday = async (date: string) => {
     try {
       setIsProcessing(true);
-      // 로컬 상태 먼저 제거 (즉시 화면에서 사라짐)
-      setHolidays(prev => prev.filter(item => item.date !== date));
-      
-      // 그 다음 서버에서 삭제
-      const res = await fetch(`/api/holidays/${date}`, { method: 'DELETE' });
+      const res = await fetch(`/api/holidays/${encodeURIComponent(date)}`, { method: 'DELETE' });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const data = await res.json();
+          throw new Error(data.error || '휴일 삭제 실패');
+        }
+        throw new Error('서버 응답 오류 - 잠시 후 다시 시도해주세요.');
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      alert('휴일이 삭제되었습니다.');
+      setHolidays(prev => prev.filter(item => item.date !== date));
+      alert(data.message || '휴일이 삭제되었습니다.');
     } catch (err: any) {
-      // 실패하면 로컬 상태 원상복구
       await fetchData();
       alert(err.message || '휴일 해제 중 오류가 발생했습니다.');
     } finally {

@@ -69,6 +69,7 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
     { date: lunar.seolnal, title: '설날' },
     { date: `${year}-03-01`, title: '삼일절' },
     { date: `${year}-05-05`, title: '어린이날' },
+    { date: `${year}-05-24`, title: '부처님오신날' },
     { date: `${year}-06-06`, title: '현충일' },
     { date: `${year}-07-17`, title: '제헌절' },
     { date: `${year}-08-15`, title: '광복절' },
@@ -112,37 +113,20 @@ export function getDefaultHolidayList(year: number = new Date().getFullYear()): 
   holidaySet.add(chuseokAfterStr);
 
   // 2단계: 대체휴무일 계산 및 추가
-
-  // 어린이날 대체공휴일 (5월 5일이 토요일 또는 일요일이면 그 다음 월요일)
-  if (isWeekend(`${year}-05-05`)) {
-    const substitute = getNationalHolidaySubstitute(`${year}-05-05`, holidaySet);
-    if (substitute && !holidaySet.has(substitute)) {
-      holidays.push({ date: substitute, title: '어린이날 대체공휴일', is_public: true, source: 'seed' });
-      holidaySet.add(substitute);
-    }
-  }
-
-  // 국경일 대체공휴일 (토·일요일과 겹치면 그 다음 월요일)
-  const nationalHolidayDates = [
-    `${year}-03-01`, // 삼일절
-    `${year}-08-15`, // 광복절
-    `${year}-10-03`, // 개천절
-    `${year}-10-09`, // 한글날
+  const weekendHolidayDates = [
+    { date: `${year}-03-01`, title: '삼일절' },
+    { date: `${year}-05-05`, title: '어린이날' },
+    { date: `${year}-05-24`, title: '부처님오신날' },
+    { date: `${year}-08-15`, title: '광복절' },
+    { date: `${year}-10-03`, title: '개천절' },
+    { date: `${year}-10-09`, title: '한글날' },
   ];
 
-  const nationalHolidayNames: Record<string, string> = {
-    [`${year}-03-01`]: '삼일절',
-    [`${year}-08-15`]: '광복절',
-    [`${year}-10-03`]: '개천절',
-    [`${year}-10-09`]: '한글날',
-  };
-
-  nationalHolidayDates.forEach(dateStr => {
-    if (isWeekend(dateStr)) {
-      const substitute = getNationalHolidaySubstitute(dateStr, holidaySet);
+  weekendHolidayDates.forEach(({ date, title }) => {
+    if (isWeekend(date)) {
+      const substitute = getNationalHolidaySubstitute(date, holidaySet);
       if (substitute && !holidaySet.has(substitute)) {
-        const name = nationalHolidayNames[dateStr];
-        holidays.push({ date: substitute, title: `${name} 대체공휴일`, is_public: true, source: 'seed' });
+        holidays.push({ date: substitute, title: `${title} 대체공휴일`, is_public: true, source: 'seed' });
         holidaySet.add(substitute);
       }
     }
