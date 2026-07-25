@@ -1,72 +1,91 @@
-import express from 'express';
-import path from 'path';
-import pg from 'pg';
-import { createServer as createViteServer } from 'vite';
-import {
-  INITIAL_STAFF,
-  INITIAL_LEAVE_REQUESTS,
-  INITIAL_POLICY,
-  INITIAL_NOTIFICATIONS,
-} from './src/data/initialData';
-import {
-  Staff,
-  LeaveRequest,
-  AnnualLeavePolicy,
-  Notification,
-  DbStatus,
-} from './src/types';
-
-const { Pool } = pg;
-const app = express();
-const PORT = Number(process.env.PORT) || 3000;
-
-app.use(express.json());
-
-// Dedicated Neon PostgreSQL Connection String
-const NEON_PG_URL =
-  process.env.POSTGRES_URL ||
-  process.env.DATABASE_URL ||
-  'postgresql://neondb_owner:npg_pcPJ8bB4IlRu@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-
-// Local Fallback State
-let localStore = {
-  staff: [...INITIAL_STAFF] as Staff[],
-  leaveRequests: [...INITIAL_LEAVE_REQUESTS] as LeaveRequest[],
-  policy: { ...INITIAL_POLICY } as AnnualLeavePolicy,
-  notifications: [...INITIAL_NOTIFICATIONS] as Notification[],
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// Database Connection States
-let pgPool: pg.Pool | null = null;
-let activeDbType: 'postgresql' | 'local' = 'local';
-let currentDbUri = NEON_PG_URL;
-let dbErrorString = '';
+// server.ts
+var server_exports = {};
+__export(server_exports, {
+  default: () => server_default
+});
+module.exports = __toCommonJS(server_exports);
+var import_express = __toESM(require("express"), 1);
+var import_path = __toESM(require("path"), 1);
+var import_pg = __toESM(require("pg"), 1);
+var import_vite = require("vite");
 
-// --- POSTGRESQL CONNECTION ---
-async function tryConnectPostgres(uri: string): Promise<boolean> {
+// src/data/initialData.ts
+var INITIAL_STAFF = [];
+var INITIAL_POLICY = {
+  negativeDeductionEnabled: true,
+  rolloverMode: "limited",
+  maxRolloverDays: 5,
+  rolloverExpiryMonths: 3,
+  statutoryBaseDays: 15,
+  maxStatutoryDays: 25
+};
+var INITIAL_LEAVE_REQUESTS = [];
+var INITIAL_NOTIFICATIONS = [];
+
+// server.ts
+var { Pool } = import_pg.default;
+var app = (0, import_express.default)();
+var PORT = Number(process.env.PORT) || 3e3;
+app.use(import_express.default.json());
+var NEON_PG_URL = process.env.POSTGRES_URL || process.env.DATABASE_URL || "postgresql://neondb_owner:npg_pcPJ8bB4IlRu@ep-aged-bar-a7n8l724-pooler.ap-southeast-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
+var localStore = {
+  staff: [...INITIAL_STAFF],
+  leaveRequests: [...INITIAL_LEAVE_REQUESTS],
+  policy: { ...INITIAL_POLICY },
+  notifications: [...INITIAL_NOTIFICATIONS]
+};
+var pgPool = null;
+var activeDbType = "local";
+var currentDbUri = NEON_PG_URL;
+var dbErrorString = "";
+async function tryConnectPostgres(uri) {
   if (!uri) return false;
   try {
     if (pgPool) {
-      await pgPool.end().catch(() => {});
+      await pgPool.end().catch(() => {
+      });
       pgPool = null;
     }
-
     const pool = new Pool({
       connectionString: uri,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 1e4
     });
-
     const client = await pool.connect();
-    await client.query('SELECT 1');
+    await client.query("SELECT 1");
     client.release();
-
     pgPool = pool;
-    activeDbType = 'postgresql';
-    dbErrorString = '';
+    activeDbType = "postgresql";
+    dbErrorString = "";
     currentDbUri = uri;
-
-    // Create tables if they do not exist
     await pool.query(`
       CREATE TABLE IF NOT EXISTS staff (
         id VARCHAR(100) PRIMARY KEY,
@@ -128,11 +147,8 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
         "createdAt" VARCHAR(100)
       );
     `);
-
-    // Seed database if staff table is empty
-    const staffCheck = await pool.query('SELECT COUNT(*) FROM staff');
+    const staffCheck = await pool.query("SELECT COUNT(*) FROM staff");
     const staffCount = parseInt(staffCheck.rows[0].count, 10);
-
     if (staffCount === 0) {
       for (const s of INITIAL_STAFF) {
         await pool.query(
@@ -150,9 +166,9 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
             s.email,
             s.phone,
             s.manualAdjustment || 0,
-            s.status || 'active',
+            s.status || "active",
             s.loginId || null,
-            s.loginPassword || null,
+            s.loginPassword || null
           ]
         );
       }
@@ -178,7 +194,7 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
             l.approvedBy || null,
             l.approvedAt || null,
             l.rejectReason || null,
-            l.createdAt,
+            l.createdAt
           ]
         );
       }
@@ -192,7 +208,7 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
           INITIAL_POLICY.maxRolloverDays,
           INITIAL_POLICY.rolloverExpiryMonths,
           INITIAL_POLICY.statutoryBaseDays,
-          INITIAL_POLICY.maxStatutoryDays,
+          INITIAL_POLICY.maxStatutoryDays
         ]
       );
       for (const n of INITIAL_NOTIFICATIONS) {
@@ -204,101 +220,84 @@ async function tryConnectPostgres(uri: string): Promise<boolean> {
         );
       }
     } else {
-      // Cleanup legacy test accounts if present
       await pool.query(`DELETE FROM staff WHERE id IN ('staff-1', 'staff-2', 'staff-3', 'staff-4', 'staff-5', 'staff-6')`);
       await pool.query(`DELETE FROM leave_requests WHERE id IN ('req-101', 'req-102')`);
       await pool.query(`DELETE FROM notifications WHERE id = 'notif-1'`);
     }
-
-    console.log('✅ Connected to Neon PostgreSQL DB successfully!');
+    console.log("\u2705 Connected to Neon PostgreSQL DB successfully!");
     return true;
-  } catch (err: any) {
-    console.warn('⚠️ PostgreSQL Connection Failed:', err.message);
-    activeDbType = 'local';
-    dbErrorString = err.message || 'PostgreSQL 연결 실패';
+  } catch (err) {
+    console.warn("\u26A0\uFE0F PostgreSQL Connection Failed:", err.message);
+    activeDbType = "local";
+    dbErrorString = err.message || "PostgreSQL \uC5F0\uACB0 \uC2E4\uD328";
     pgPool = null;
     return false;
   }
 }
-
-// Auto connect on startup
 async function ensureDbConnected() {
-  if (activeDbType !== 'local') return;
+  if (activeDbType !== "local") return;
   await tryConnectPostgres(currentDbUri);
 }
-
-app.use('/api', async (req, res, next) => {
-  if (activeDbType === 'local') {
+app.use("/api", async (req, res, next) => {
+  if (activeDbType === "local") {
     await ensureDbConnected();
   }
   next();
 });
-
-// --- API ROUTES ---
-
-// Admin Auth
-app.post('/api/admin/login', (req, res) => {
+app.post("/api/admin/login", (req, res) => {
   const { adminId, adminPassword } = req.body;
-  const targetId = process.env.ADMIN_ID || 'cocobebe';
-  const targetPass = process.env.ADMIN_PASSWORD || 'Dbsgofks03!';
-
+  const targetId = process.env.ADMIN_ID || "cocobebe";
+  const targetPass = process.env.ADMIN_PASSWORD || "Dbsgofks03!";
   if (adminId === targetId && adminPassword === targetPass) {
-    return res.json({ success: true, message: '로그인 성공' });
+    return res.json({ success: true, message: "\uB85C\uADF8\uC778 \uC131\uACF5" });
   } else {
-    return res.status(401).json({ success: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
+    return res.status(401).json({ success: false, message: "\uC544\uC774\uB514 \uB610\uB294 \uBE44\uBC00\uBC88\uD638\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4." });
   }
 });
-
-// DB Status & Config
-app.get('/api/db/status', (req, res) => {
-  const maskedUri = currentDbUri.replace(/:([^@]+)@/, ':****@');
+app.get("/api/db/status", (req, res) => {
+  const maskedUri = currentDbUri.replace(/:([^@]+)@/, ":****@");
   res.json({
-    connected: activeDbType !== 'local',
+    connected: activeDbType !== "local",
     type: activeDbType,
     connectionString: maskedUri,
-    error: dbErrorString,
-  } as DbStatus);
+    error: dbErrorString
+  });
 });
-
-app.post('/api/db/config', async (req, res) => {
+app.post("/api/db/config", async (req, res) => {
   const { connectionString } = req.body;
   if (!connectionString) {
-    return res.status(400).json({ error: '데이터베이스 연결 문자열을 입력해주세요.' });
+    return res.status(400).json({ error: "\uB370\uC774\uD130\uBCA0\uC774\uC2A4 \uC5F0\uACB0 \uBB38\uC790\uC5F4\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694." });
   }
-
   const success = await tryConnectPostgres(connectionString);
-  const maskedUri = connectionString.replace(/:([^@]+)@/, ':****@');
-
+  const maskedUri = connectionString.replace(/:([^@]+)@/, ":****@");
   if (success) {
     return res.json({
       success: true,
-      message: 'Neon PostgreSQL 데이터베이스에 성공적으로 연결되었습니다!',
+      message: "Neon PostgreSQL \uB370\uC774\uD130\uBCA0\uC774\uC2A4\uC5D0 \uC131\uACF5\uC801\uC73C\uB85C \uC5F0\uACB0\uB418\uC5C8\uC2B5\uB2C8\uB2E4!",
       status: {
         connected: true,
-        type: 'postgresql',
-        connectionString: maskedUri,
-      },
+        type: "postgresql",
+        connectionString: maskedUri
+      }
     });
   } else {
     return res.status(400).json({
       success: false,
-      message: `데이터베이스 연결 실패: ${dbErrorString}`,
+      message: `\uB370\uC774\uD130\uBCA0\uC774\uC2A4 \uC5F0\uACB0 \uC2E4\uD328: ${dbErrorString}`,
       status: {
         connected: false,
-        type: 'local',
+        type: "local",
         connectionString: maskedUri,
-        error: dbErrorString,
-      },
+        error: dbErrorString
+      }
     });
   }
 });
-
-// Staff Management
-app.get('/api/staff', async (req, res) => {
+app.get("/api/staff", async (req, res) => {
   try {
-    if (activeDbType === 'postgresql' && pgPool) {
-      const result = await pgPool.query('SELECT * FROM staff ORDER BY name ASC');
-      const list: Staff[] = result.rows.map((row) => ({
+    if (activeDbType === "postgresql" && pgPool) {
+      const result = await pgPool.query("SELECT * FROM staff ORDER BY name ASC");
+      const list = result.rows.map((row) => ({
         id: row.id,
         name: row.name,
         employeeNumber: row.employeeNumber,
@@ -309,37 +308,35 @@ app.get('/api/staff', async (req, res) => {
         email: row.email,
         phone: row.phone,
         manualAdjustment: Number(row.manualAdjustment) || 0,
-        status: row.status || 'active',
-        loginId: row.loginId || '',
-        loginPassword: row.loginPassword || '',
+        status: row.status || "active",
+        loginId: row.loginId || "",
+        loginPassword: row.loginPassword || ""
       }));
       return res.json(list);
     }
     res.json(localStore.staff);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.post('/api/staff', async (req, res) => {
+app.post("/api/staff", async (req, res) => {
   try {
-    const newStaff: Staff = {
+    const newStaff = {
       id: `staff-${Date.now()}`,
       name: req.body.name,
-      employeeNumber: req.body.employeeNumber || `CB-${new Date().getFullYear()}${Math.floor(100 + Math.random() * 900)}`,
-      role: req.body.role || 'teacher',
-      positionTitle: req.body.positionTitle || '교사',
-      className: req.body.className || '새싹반',
-      joinDate: req.body.joinDate || new Date().toISOString().split('T')[0],
-      email: req.body.email || '',
-      phone: req.body.phone || '010-0000-0000',
+      employeeNumber: req.body.employeeNumber || `CB-${(/* @__PURE__ */ new Date()).getFullYear()}${Math.floor(100 + Math.random() * 900)}`,
+      role: req.body.role || "teacher",
+      positionTitle: req.body.positionTitle || "\uAD50\uC0AC",
+      className: req.body.className || "\uC0C8\uC2F9\uBC18",
+      joinDate: req.body.joinDate || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+      email: req.body.email || "",
+      phone: req.body.phone || "010-0000-0000",
       manualAdjustment: Number(req.body.manualAdjustment) || 0,
-      status: 'active',
-      loginId: req.body.loginId || '',
-      loginPassword: req.body.loginPassword || '',
+      status: "active",
+      loginId: req.body.loginId || "",
+      loginPassword: req.body.loginPassword || ""
     };
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `INSERT INTO staff (id, name, "employeeNumber", role, "positionTitle", "className", "joinDate", email, phone, "manualAdjustment", status, "loginId", "loginPassword")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
@@ -356,25 +353,22 @@ app.post('/api/staff', async (req, res) => {
           newStaff.manualAdjustment,
           newStaff.status,
           newStaff.loginId,
-          newStaff.loginPassword,
+          newStaff.loginPassword
         ]
       );
     } else {
       localStore.staff.push(newStaff);
     }
-
     res.json(newStaff);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.put('/api/staff/:id', async (req, res) => {
+app.put("/api/staff/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `UPDATE staff 
          SET name = COALESCE($1, name),
@@ -399,61 +393,52 @@ app.put('/api/staff/:id', async (req, res) => {
           updateData.joinDate,
           updateData.email,
           updateData.phone,
-          updateData.manualAdjustment !== undefined ? Number(updateData.manualAdjustment) : null,
+          updateData.manualAdjustment !== void 0 ? Number(updateData.manualAdjustment) : null,
           updateData.status,
-          updateData.loginId !== undefined ? updateData.loginId : null,
-          updateData.loginPassword !== undefined ? updateData.loginPassword : null,
-          id,
+          updateData.loginId !== void 0 ? updateData.loginId : null,
+          updateData.loginPassword !== void 0 ? updateData.loginPassword : null,
+          id
         ]
       );
     } else {
-      localStore.staff = localStore.staff.map((s) => (s.id === id ? { ...s, ...updateData } : s));
+      localStore.staff = localStore.staff.map((s) => s.id === id ? { ...s, ...updateData } : s);
     }
-
-    res.json({ success: true, message: '직원 정보가 수정되었습니다.' });
-  } catch (err: any) {
+    res.json({ success: true, message: "\uC9C1\uC6D0 \uC815\uBCF4\uAC00 \uC218\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4." });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Staff Login Auth
-app.post('/api/staff/login', async (req, res) => {
+app.post("/api/staff/login", async (req, res) => {
   try {
     const { loginId, loginPassword } = req.body;
     if (!loginId || !loginPassword) {
-      return res.status(400).json({ success: false, message: '아이디와 비밀번호를 모두 입력해주세요.' });
+      return res.status(400).json({ success: false, message: "\uC544\uC774\uB514\uC640 \uBE44\uBC00\uBC88\uD638\uB97C \uBAA8\uB450 \uC785\uB825\uD574\uC8FC\uC138\uC694." });
     }
-
-    // Check super admin credentials
-    const targetAdminId = process.env.ADMIN_ID || 'cocobebe';
-    const targetAdminPass = process.env.ADMIN_PASSWORD || 'Dbsgofks03!';
-
+    const targetAdminId = process.env.ADMIN_ID || "cocobebe";
+    const targetAdminPass = process.env.ADMIN_PASSWORD || "Dbsgofks03!";
     if (loginId === targetAdminId && loginPassword === targetAdminPass) {
       return res.json({
         success: true,
         isAdmin: true,
-        message: '관리자로 로그인되었습니다.',
+        message: "\uAD00\uB9AC\uC790\uB85C \uB85C\uADF8\uC778\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
         staff: {
-          id: 'admin-cocobebe',
-          name: '관리자',
-          employeeNumber: 'ADMIN-001',
-          role: 'admin',
-          positionTitle: '원장',
-          className: '원장실 / 행정',
-          joinDate: '2020-03-01',
-          email: 'cocobebe@cocobebe.child.kr',
-          phone: '010-0000-0000',
+          id: "admin-cocobebe",
+          name: "\uAD00\uB9AC\uC790",
+          employeeNumber: "ADMIN-001",
+          role: "admin",
+          positionTitle: "\uC6D0\uC7A5",
+          className: "\uC6D0\uC7A5\uC2E4 / \uD589\uC815",
+          joinDate: "2020-03-01",
+          email: "cocobebe@cocobebe.child.kr",
+          phone: "010-0000-0000",
           manualAdjustment: 0,
-          status: 'active',
-          loginId: targetAdminId,
-        },
+          status: "active",
+          loginId: targetAdminId
+        }
       });
     }
-
-    // Find staff in database
-    let foundStaff: Staff | undefined;
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    let foundStaff;
+    if (activeDbType === "postgresql" && pgPool) {
       const result = await pgPool.query(
         'SELECT * FROM staff WHERE "loginId" = $1 AND "loginPassword" = $2 LIMIT 1',
         [loginId, loginPassword]
@@ -471,79 +456,65 @@ app.post('/api/staff/login', async (req, res) => {
           email: row.email,
           phone: row.phone,
           manualAdjustment: Number(row.manualAdjustment) || 0,
-          status: row.status || 'active',
+          status: row.status || "active",
           loginId: row.loginId,
-          loginPassword: row.loginPassword,
+          loginPassword: row.loginPassword
         };
       }
     } else {
       foundStaff = localStore.staff.find((s) => s.loginId === loginId && s.loginPassword === loginPassword);
     }
-
     if (foundStaff) {
-      const isDirectorOrAdmin = foundStaff.role === 'admin' || foundStaff.positionTitle === '원장';
+      const isDirectorOrAdmin = foundStaff.role === "admin" || foundStaff.positionTitle === "\uC6D0\uC7A5";
       return res.json({
         success: true,
         isAdmin: isDirectorOrAdmin,
         staff: foundStaff,
-        message: `${foundStaff.name} ${foundStaff.positionTitle}님 환영합니다!`,
+        message: `${foundStaff.name} ${foundStaff.positionTitle}\uB2D8 \uD658\uC601\uD569\uB2C8\uB2E4!`
       });
     }
-
     return res.status(401).json({
       success: false,
-      message: '등록된 아이디 또는 비밀번호가 올바르지 않습니다.',
+      message: "\uB4F1\uB85D\uB41C \uC544\uC774\uB514 \uB610\uB294 \uBE44\uBC00\uBC88\uD638\uAC00 \uC62C\uBC14\uB974\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
     });
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
-app.delete('/api/staff/:id', async (req, res) => {
+app.delete("/api/staff/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('[DELETE /api/staff/:id] Request to delete staff ID:', id);
-
-    if (activeDbType === 'postgresql' && pgPool) {
-      // Clean up substitute teacher references
-      await pgPool
-        .query('UPDATE leave_requests SET "substituteTeacherId" = NULL WHERE "substituteTeacherId" = $1', [id])
-        .catch(() => {});
-      await pgPool
-        .query('UPDATE leave_requests SET substituteteacherid = NULL WHERE substituteteacherid = $1', [id])
-        .catch(() => {});
-
-      // Clean up leave requests
-      await pgPool.query('DELETE FROM leave_requests WHERE "staffId" = $1', [id]).catch(() => {});
-      await pgPool.query('DELETE FROM leave_requests WHERE staffid = $1', [id]).catch(() => {});
-
-      // Clean up notifications
-      await pgPool.query('DELETE FROM notifications WHERE "staffId" = $1', [id]).catch(() => {});
-      await pgPool.query('DELETE FROM notifications WHERE staffid = $1', [id]).catch(() => {});
-
-      // Delete staff record
-      const result = await pgPool.query('DELETE FROM staff WHERE id = $1', [id]);
+    console.log("[DELETE /api/staff/:id] Request to delete staff ID:", id);
+    if (activeDbType === "postgresql" && pgPool) {
+      await pgPool.query('UPDATE leave_requests SET "substituteTeacherId" = NULL WHERE "substituteTeacherId" = $1', [id]).catch(() => {
+      });
+      await pgPool.query("UPDATE leave_requests SET substituteteacherid = NULL WHERE substituteteacherid = $1", [id]).catch(() => {
+      });
+      await pgPool.query('DELETE FROM leave_requests WHERE "staffId" = $1', [id]).catch(() => {
+      });
+      await pgPool.query("DELETE FROM leave_requests WHERE staffid = $1", [id]).catch(() => {
+      });
+      await pgPool.query('DELETE FROM notifications WHERE "staffId" = $1', [id]).catch(() => {
+      });
+      await pgPool.query("DELETE FROM notifications WHERE staffid = $1", [id]).catch(() => {
+      });
+      const result = await pgPool.query("DELETE FROM staff WHERE id = $1", [id]);
       console.log(`[DELETE /api/staff/:id] Deleted ${result.rowCount} row(s) from staff table.`);
     }
-
-    // Always clean up localStore as well
     localStore.staff = localStore.staff.filter((s) => s.id !== id);
     localStore.leaveRequests = localStore.leaveRequests.filter((r) => r.staffId !== id);
     localStore.notifications = localStore.notifications.filter((n) => n.staffId !== id);
-
-    return res.json({ success: true, message: '교사 계정이 성공적으로 삭제되었습니다.' });
-  } catch (err: any) {
-    console.error('Error deleting staff:', err);
-    return res.status(500).json({ error: err.message || '교사 삭제 중 오류가 발생했습니다.' });
+    return res.json({ success: true, message: "\uAD50\uC0AC \uACC4\uC815\uC774 \uC131\uACF5\uC801\uC73C\uB85C \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4." });
+  } catch (err) {
+    console.error("Error deleting staff:", err);
+    return res.status(500).json({ error: err.message || "\uAD50\uC0AC \uC0AD\uC81C \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4." });
   }
 });
-
-// Leave Requests Management
-app.get('/api/leave-requests', async (req, res) => {
+app.get("/api/leave-requests", async (req, res) => {
   try {
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       const result = await pgPool.query('SELECT * FROM leave_requests ORDER BY "createdAt" DESC');
-      const list: LeaveRequest[] = result.rows.map((row) => ({
+      const list = result.rows.map((row) => ({
         id: row.id,
         staffId: row.staffId,
         staffName: row.staffName,
@@ -561,19 +532,18 @@ app.get('/api/leave-requests', async (req, res) => {
         approvedAt: row.approvedAt,
         rejectReason: row.rejectReason,
         createdAt: row.createdAt,
-        deductedFromNextYear: row.deductedFromNextYear || false,
+        deductedFromNextYear: row.deductedFromNextYear || false
       }));
       return res.json(list);
     }
     res.json(localStore.leaveRequests);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.post('/api/leave-requests', async (req, res) => {
+app.post("/api/leave-requests", async (req, res) => {
   try {
-    const newReq: LeaveRequest = {
+    const newReq = {
       id: `req-${Date.now()}`,
       staffId: req.body.staffId,
       staffName: req.body.staffName,
@@ -586,12 +556,11 @@ app.post('/api/leave-requests', async (req, res) => {
       reason: req.body.reason,
       substituteTeacherId: req.body.substituteTeacherId || null,
       substituteTeacherName: req.body.substituteTeacherName || null,
-      status: 'pending',
-      createdAt: new Date().toISOString().split('T')[0],
-      deductedFromNextYear: false,
+      status: "pending",
+      createdAt: (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+      deductedFromNextYear: false
     };
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `INSERT INTO leave_requests (id, "staffId", "staffName", "staffRole", "className", type, "daysCount", "startDate", "endDate", reason, "substituteTeacherId", "substituteTeacherName", status, "createdAt")
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
@@ -609,97 +578,86 @@ app.post('/api/leave-requests', async (req, res) => {
           newReq.substituteTeacherId,
           newReq.substituteTeacherName,
           newReq.status,
-          newReq.createdAt,
+          newReq.createdAt
         ]
       );
     } else {
       localStore.leaveRequests.unshift(newReq);
     }
-
     res.json(newReq);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.put('/api/leave-requests/:id/approve', async (req, res) => {
+app.put("/api/leave-requests/:id/approve", async (req, res) => {
   try {
     const { id } = req.params;
     const { approvedBy, deductedFromNextYear } = req.body;
-    const approvedAt = new Date().toISOString().split('T')[0];
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    const approvedAt = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `UPDATE leave_requests 
          SET status = 'approved', "approvedBy" = $1, "approvedAt" = $2, "deductedFromNextYear" = COALESCE($3, "deductedFromNextYear")
          WHERE id = $4`,
-        [approvedBy || '원장', approvedAt, deductedFromNextYear || false, id]
+        [approvedBy || "\uC6D0\uC7A5", approvedAt, deductedFromNextYear || false, id]
       );
     } else {
-      localStore.leaveRequests = localStore.leaveRequests.map((r) =>
-        r.id === id ? { ...r, status: 'approved', approvedBy: approvedBy || '원장', approvedAt, deductedFromNextYear } : r
+      localStore.leaveRequests = localStore.leaveRequests.map(
+        (r) => r.id === id ? { ...r, status: "approved", approvedBy: approvedBy || "\uC6D0\uC7A5", approvedAt, deductedFromNextYear } : r
       );
     }
-
-    res.json({ success: true, message: '승인 처리되었습니다.' });
-  } catch (err: any) {
+    res.json({ success: true, message: "\uC2B9\uC778 \uCC98\uB9AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4." });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.put('/api/leave-requests/:id/reject', async (req, res) => {
+app.put("/api/leave-requests/:id/reject", async (req, res) => {
   try {
     const { id } = req.params;
     const { rejectReason } = req.body;
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `UPDATE leave_requests 
          SET status = 'rejected', "rejectReason" = $1
          WHERE id = $2`,
-        [rejectReason || '사유 미기재', id]
+        [rejectReason || "\uC0AC\uC720 \uBBF8\uAE30\uC7AC", id]
       );
     } else {
-      localStore.leaveRequests = localStore.leaveRequests.map((r) =>
-        r.id === id ? { ...r, status: 'rejected', rejectReason: rejectReason || '사유 미기재' } : r
+      localStore.leaveRequests = localStore.leaveRequests.map(
+        (r) => r.id === id ? { ...r, status: "rejected", rejectReason: rejectReason || "\uC0AC\uC720 \uBBF8\uAE30\uC7AC" } : r
       );
     }
-
-    res.json({ success: true, message: '반려 처리되었습니다.' });
-  } catch (err: any) {
+    res.json({ success: true, message: "\uBC18\uB824 \uCC98\uB9AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4." });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Policy Management
-app.get('/api/policy', async (req, res) => {
+app.get("/api/policy", async (req, res) => {
   try {
-    if (activeDbType === 'postgresql' && pgPool) {
-      const result = await pgPool.query('SELECT * FROM policy WHERE id = \'default_policy\' LIMIT 1');
+    if (activeDbType === "postgresql" && pgPool) {
+      const result = await pgPool.query("SELECT * FROM policy WHERE id = 'default_policy' LIMIT 1");
       if (result.rows.length > 0) {
         const row = result.rows[0];
-        const pol: AnnualLeavePolicy = {
+        const pol = {
           negativeDeductionEnabled: row.negativeDeductionEnabled,
           rolloverMode: row.rolloverMode,
           maxRolloverDays: Number(row.maxRolloverDays) || 0,
           rolloverExpiryMonths: Number(row.rolloverExpiryMonths) || 12,
           statutoryBaseDays: Number(row.statutoryBaseDays) || 15,
-          maxStatutoryDays: Number(row.maxStatutoryDays) || 25,
+          maxStatutoryDays: Number(row.maxStatutoryDays) || 25
         };
         return res.json(pol);
       }
     }
     res.json(localStore.policy);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.put('/api/policy', async (req, res) => {
+app.put("/api/policy", async (req, res) => {
   try {
-    const updated: AnnualLeavePolicy = req.body;
-
-    if (activeDbType === 'postgresql' && pgPool) {
+    const updated = req.body;
+    if (activeDbType === "postgresql" && pgPool) {
       await pgPool.query(
         `UPDATE policy 
          SET "negativeDeductionEnabled" = $1, "rolloverMode" = $2, "maxRolloverDays" = $3, "rolloverExpiryMonths" = $4, "statutoryBaseDays" = $5, "maxStatutoryDays" = $6
@@ -710,80 +668,71 @@ app.put('/api/policy', async (req, res) => {
           updated.maxRolloverDays,
           updated.rolloverExpiryMonths,
           updated.statutoryBaseDays,
-          updated.maxStatutoryDays,
+          updated.maxStatutoryDays
         ]
       );
     } else {
       localStore.policy = { ...updated };
     }
-
     res.json(updated);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Notifications
-app.get('/api/notifications', async (req, res) => {
+app.get("/api/notifications", async (req, res) => {
   try {
-    if (activeDbType === 'postgresql' && pgPool) {
+    if (activeDbType === "postgresql" && pgPool) {
       const result = await pgPool.query('SELECT * FROM notifications ORDER BY "createdAt" DESC');
-      const list: Notification[] = result.rows.map((row) => ({
+      const list = result.rows.map((row) => ({
         id: row.id,
         staffId: row.staffId,
         title: row.title,
         message: row.message,
         type: row.type,
         read: row.read,
-        createdAt: row.createdAt,
+        createdAt: row.createdAt
       }));
       return res.json(list);
     }
     res.json(localStore.notifications);
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-app.put('/api/notifications/:id/read', async (req, res) => {
+app.put("/api/notifications/:id/read", async (req, res) => {
   try {
     const { id } = req.params;
-    if (activeDbType === 'postgresql' && pgPool) {
-      await pgPool.query('UPDATE notifications SET read = TRUE WHERE id = $1', [id]);
+    if (activeDbType === "postgresql" && pgPool) {
+      await pgPool.query("UPDATE notifications SET read = TRUE WHERE id = $1", [id]);
     } else {
-      localStore.notifications = localStore.notifications.map((n) => (n.id === id ? { ...n, read: true } : n));
+      localStore.notifications = localStore.notifications.map((n) => n.id === id ? { ...n, read: true } : n);
     }
     res.json({ success: true });
-  } catch (err: any) {
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
-// Vite & Static file serving
 async function startServer() {
   await ensureDbConnected();
-
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
-      appType: 'spa',
+      appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    const distPath = import_path.default.join(process.cwd(), "dist");
+    app.use(import_express.default.static(distPath));
+    app.get("*", (req, res) => {
+      res.sendFile(import_path.default.join(distPath, "index.html"));
     });
   }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Nursery Attendance Server running on http://0.0.0.0:${PORT}`);
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`\u{1F680} Nursery Attendance Server running on http://0.0.0.0:${PORT}`);
   });
 }
-
 if (!process.env.VERCEL) {
   startServer();
 }
-
-export default app;
+var server_default = app;
+//# sourceMappingURL=server.cjs.map
