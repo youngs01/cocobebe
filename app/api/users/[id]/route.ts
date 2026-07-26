@@ -11,21 +11,33 @@ export async function PUT(request: Request, props: { params: Promise<{ id: strin
 
     const { id } = await props.params;
     const body = await request.json();
-    const { name, department, position, phone, email, hire_date, role } = body;
+    const { name, department, position, phone, email, hire_date, role, password } = body;
 
     // 필수 필드 검증
     if (!name?.trim() || !department?.trim()) {
       return NextResponse.json({ error: '이름과 담당 반/부서는 필수입니다.' }, { status: 400 });
     }
 
-    // 사용자 업데이트
-    const updateResult = await query(
-      `UPDATE users 
-       SET name = $1, department = $2, position = $3, phone = $4, email = $5, hire_date = $6, role = $7
-       WHERE id = $8
-       RETURNING id, login_id, name, role, hire_date, department, phone, email, status, position`,
-      [name.trim(), department.trim(), position || null, phone || null, email || null, hire_date || null, role || 'teacher', id]
-    );
+    // 비밀번호가 전달된 경우에만 업데이트
+    const updateFields = [name.trim(), department.trim(), position || null, phone || null, email || null, hire_date || null, role || 'teacher'];
+    let updateResult;
+    if (password && password.trim()) {
+      updateResult = await query(
+        `UPDATE users 
+         SET name = $1, department = $2, position = $3, phone = $4, email = $5, hire_date = $6, role = $7, password = $8
+         WHERE id = $9
+         RETURNING id, login_id, name, role, hire_date, department, phone, email, status, position`,
+        [...updateFields, password.trim(), id]
+      );
+    } else {
+      updateResult = await query(
+        `UPDATE users 
+         SET name = $1, department = $2, position = $3, phone = $4, email = $5, hire_date = $6, role = $7
+         WHERE id = $8
+         RETURNING id, login_id, name, role, hire_date, department, phone, email, status, position`,
+        [...updateFields, id]
+      );
+    }
 
     if (updateResult.rows.length === 0) {
       return NextResponse.json({ error: '사용자를 찾을 수 없습니다.' }, { status: 404 });

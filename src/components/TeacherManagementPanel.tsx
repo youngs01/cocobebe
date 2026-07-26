@@ -24,6 +24,7 @@ interface TeacherManagementPanelProps {
     email?: string;
     hire_date?: string;
     role?: UserRole;
+    password?: string;
   }) => Promise<void>;
   onDeleteTeacher: (id: string) => Promise<void>;
   onRecalculateLeave: (id: string) => Promise<void>;
@@ -79,6 +80,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   const [editPosition, setEditPosition] = useState('교사');
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editPassword, setEditPassword] = useState('');
   const [editRole, setEditRole] = useState<UserRole>('teacher');
 
   // 직책 정렬 순서 정의
@@ -148,6 +150,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
     setEditPosition(user.position || (user.role === 'director' ? '원장' : '교사'));
     setEditPhone(user.phone || '');
     setEditEmail(user.email || '');
+    setEditPassword('');
     setEditRole(user.role);
   };
 
@@ -167,7 +170,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
     }
 
     try {
-      await onUpdateTeacher(editingUser.id, {
+      const updatePayload: any = {
         name: editName.trim(),
         department: finalDept,
         position: editPosition,
@@ -175,7 +178,11 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
         email: editEmail,
         hire_date: editHireDate,
         role: editPosition === '원장' ? 'director' : editRole
-      });
+      };
+      if (editPassword.trim()) {
+        updatePayload.password = editPassword.trim();
+      }
+      await onUpdateTeacher(editingUser.id, updatePayload);
       setEditingUser(null);
     } catch (err: any) {
       alert(err.message || '교직원 정보 수정 중 오류가 발생했습니다.');
@@ -573,6 +580,18 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                   onChange={(e) => setEditEmail(e.target.value)}
                   className="w-full border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41]"
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#344E41] mb-1">비밀번호 수정</label>
+                <input
+                  type="text"
+                  placeholder="변경할 비밀번호를 입력하세요"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  className="w-full border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41]"
+                />
+                <p className="text-[10px] text-[#718355] mt-1">빈 칸으로 두면 기존 비밀번호가 유지됩니다.</p>
               </div>
 
               <div>
