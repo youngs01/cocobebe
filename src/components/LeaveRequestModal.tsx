@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, LeaveType, Holiday } from '../types';
 import { X, Calendar, AlertCircle, FileText, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, parseISO, eachDayOfInterval, isWeekend, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, isWeekend, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths, isBefore, isAfter } from 'date-fns';
 
 interface LeaveRequestModalProps {
   isOpen: boolean;
@@ -119,8 +119,8 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl shadow-xl border border-[#E9EDC9] w-full max-w-lg overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200 overflow-auto">
+      <div className="bg-white rounded-2xl shadow-xl border border-[#E9EDC9] w-full max-w-lg max-h-[90vh] overflow-auto">
         
         {/* Header */}
         <div className="bg-[#F1F3E9] px-6 py-4 border-b border-[#E9EDC9] flex items-center justify-between">
@@ -169,12 +169,53 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 return days.map((day) => {
                   const dStr = format(day, 'yyyy-MM-dd');
                   const holiday = normalizedHolidays.find(h => h.date === dStr && h.is_public);
-                  const cls = isSameMonth(day, monthStart) ? 'bg-white' : 'bg-[#FDFCF8] text-[#A3B18A]';
+                  const clsBase = isSameMonth(day, monthStart) ? 'bg-white' : 'bg-[#FDFCF8] text-[#A3B18A]';
+
+                  // selection range visuals
+                  const hasStart = !!startDate;
+                  const hasEnd = !!endDate;
+                  let inRange = false;
+                  let isStart = false;
+                  let isEnd = false;
+                  if (hasStart && hasEnd) {
+                    const s = parseISO(startDate);
+                    const e = parseISO(endDate);
+                    const dayDate = day;
+                    const from = isBefore(s, e) ? s : e;
+                    const to = isAfter(s, e) ? s : e;
+                    if ((isAfter(dayDate, from) || dayDate.getTime() === from.getTime()) && (isBefore(dayDate, to) || dayDate.getTime() === to.getTime())) {
+                      inRange = true;
+                    }
+                    if (dayDate.getTime() === from.getTime()) isStart = true;
+                    if (dayDate.getTime() === to.getTime()) isEnd = true;
+                  }
+
+                  const cls = `${clsBase} ${holiday ? 'ring-1 ring-rose-200' : ''} ${inRange ? 'bg-rose-50' : ''}`;
+
                   return (
-                    <div key={dStr} className={`min-h-[34px] p-1 rounded text-center ${cls} ${holiday ? 'ring-1 ring-rose-200' : ''}`}>
-                      <div className={`${holiday ? 'text-rose-600 font-bold' : ''}`}>{format(day, 'd')}</div>
-                      {holiday && <div className="text-rose-700 text-[10px] truncate">{holiday.title}</div>}
-                    </div>
+                    <button
+                      key={dStr}
+                      type="button"
+                      onClick={() => {
+                        if (!startDate || (startDate && endDate)) {
+                          setStartDate(dStr);
+                          setEndDate(dStr);
+                        } else {
+                          if (dStr < startDate) {
+                            setEndDate(startDate);
+                            setStartDate(dStr);
+                          } else {
+                            setEndDate(dStr);
+                          }
+                        }
+                      }}
+                      className={`min-h-[34px] p-1 rounded text-center text-left ${cls}`}
+                    >
+                      <div className={`flex items-center justify-between gap-2 ${isStart || isEnd ? 'font-bold' : ''}`}>
+                        <div className={`${isStart || isEnd ? 'bg-rose-600 text-white rounded-full w-6 h-6 flex items-center justify-center' : ''}`}>{format(day, 'd')}</div>
+                        {holiday && <div className="text-rose-700 text-[10px] truncate">{holiday.title}</div>}
+                      </div>
+                    </button>
                   );
                 })
               })()}
@@ -233,11 +274,12 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
               <input
                 type="date"
                 value={startDate}
+                readOnly
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   if (e.target.value > endDate) setEndDate(e.target.value);
                 }}
-                className="w-full text-xs border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41] focus:ring-2 focus:ring-[#718355] focus:outline-hidden"
+                className="w-full text-xs border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41] focus:ring-2 focus:ring-[#718355] focus:outline-hidden cursor-pointer"
                 required
               />
             </div>
@@ -249,10 +291,11 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
               <input
                 type="date"
                 value={endDate}
+                readOnly
                 min={startDate}
                 disabled={leaveType === 'half_am' || leaveType === 'half_pm'}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full text-xs border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41] focus:ring-2 focus:ring-[#718355] focus:outline-hidden disabled:bg-[#FDFCF8]"
+                className="w-full text-xs border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41] focus:ring-2 focus:ring-[#718355] focus:outline-hidden disabled:bg-[#FDFCF8] cursor-pointer"
                 required
               />
             </div>
