@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, LeaveType, Holiday } from '../types';
-import { X, Calendar, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
-import { format, parseISO, eachDayOfInterval, isWeekend } from 'date-fns';
+import { X, Calendar, AlertCircle, FileText, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format, parseISO, eachDayOfInterval, isWeekend, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameMonth, addMonths, subMonths } from 'date-fns';
 
 interface LeaveRequestModalProps {
   isOpen: boolean;
@@ -34,6 +34,10 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatedDays, setCalculatedDays] = useState<number>(1);
   const [excludedDates, setExcludedDates] = useState<{ date: string; title: string }[]>([]);
+  const [miniMonth, setMiniMonth] = useState<Date>(parseISO(todayStr));
+
+  const prevMiniMonth = () => setMiniMonth(subMonths(miniMonth, 1));
+  const nextMiniMonth = () => setMiniMonth(addMonths(miniMonth, 1));
 
   // Calculate working days excluding weekends and red-day public holidays
   useEffect(() => {
@@ -134,6 +138,47 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+
+          {/* Mini calendar for teachers to view public/substitute holidays */}
+          <div className="bg-white rounded-xl border border-[#E9EDC9] p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={prevMiniMonth} className="p-1 rounded hover:bg-[#F1F3E9]"><ChevronLeft className="w-4 h-4" /></button>
+                <strong className="text-sm">{format(miniMonth, 'yyyy년 M월')}</strong>
+                <button type="button" onClick={nextMiniMonth} className="p-1 rounded hover:bg-[#F1F3E9]"><ChevronRight className="w-4 h-4" /></button>
+              </div>
+              <div className="text-xs text-[#718355]">공휴일/대체공휴일 표시</div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 text-xs text-center">
+              {['일','월','화','수','목','금','토'].map((d,i)=> (
+                <div key={i} className={`font-bold ${i===0? 'text-rose-600' : i===6 ? 'text-blue-600' : ''}`}>{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-1 mt-2 text-[12px]">
+              {(() => {
+                const monthStart = startOfMonth(miniMonth);
+                const monthEnd = endOfMonth(monthStart);
+                const start = startOfWeek(monthStart, { weekStartsOn: 0 });
+                const end = endOfWeek(monthEnd, { weekStartsOn: 0 });
+                const days = eachDayOfInterval({ start, end });
+                const normalizedHolidays = holidays.map(h => ({ ...h, date: h.date.includes('T') ? h.date.split('T')[0] : h.date }));
+
+                return days.map((day) => {
+                  const dStr = format(day, 'yyyy-MM-dd');
+                  const holiday = normalizedHolidays.find(h => h.date === dStr && h.is_public);
+                  const cls = isSameMonth(day, monthStart) ? 'bg-white' : 'bg-[#FDFCF8] text-[#A3B18A]';
+                  return (
+                    <div key={dStr} className={`min-h-[34px] p-1 rounded text-center ${cls} ${holiday ? 'ring-1 ring-rose-200' : ''}`}>
+                      <div className={`${holiday ? 'text-rose-600 font-bold' : ''}`}>{format(day, 'd')}</div>
+                      {holiday && <div className="text-rose-700 text-[10px] truncate">{holiday.title}</div>}
+                    </div>
+                  );
+                })
+              })()}
+            </div>
+          </div>
           
           {/* Remaining Leave Status Card */}
           <div className="bg-[#FDFCF8] border border-[#E9EDC9] rounded-xl p-3 flex items-center justify-between text-xs">
