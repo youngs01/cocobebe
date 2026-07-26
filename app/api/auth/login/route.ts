@@ -24,24 +24,51 @@ export async function POST(request: Request) {
 
     const user = result.rows[0];
     const currentYear = new Date().getFullYear();
-    const grant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
-    const serviceInfo = calculateServiceInfo(user.hire_date);
+    try {
+      const grant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+      const serviceInfo = calculateServiceInfo(user.hire_date);
 
-    return NextResponse.json({
-      success: true,
-      user: {
-        ...user,
-        statutory_days: Number(grant?.statutory_days ?? serviceInfo.statutoryDays ?? 0),
-        bonus_days: Number(grant?.bonus_days ?? 0),
-        total_days: Number(grant?.total_days ?? serviceInfo.statutoryDays ?? 0),
-        used_days: Number(grant?.used_days ?? 0),
-        pending_days: Number(grant?.pending_days ?? 0),
-        remaining_days: Number(grant?.remaining_days ?? grant?.total_days ?? serviceInfo.statutoryDays ?? 0),
-        calculation_note: grant?.calculation_note || '로그인 시 계산됨',
-        years_of_service: serviceInfo.years,
-        months_of_service: serviceInfo.months,
-      }
-    });
+      const dbStatutoryDays = Number(grant?.statutory_days ?? -1);
+      const statutoryDays = dbStatutoryDays > 0 ? dbStatutoryDays : serviceInfo.statutoryDays;
+      const dbTotalDays = Number(grant?.total_days ?? -1);
+      const totalDays = dbTotalDays > 0 ? dbTotalDays : statutoryDays;
+      const dbRemainingDays = Number(grant?.remaining_days ?? -1);
+      const remainingDays = dbRemainingDays >= 0 ? dbRemainingDays : totalDays;
+
+      return NextResponse.json({
+        success: true,
+        user: {
+          ...user,
+          statutory_days: Math.max(0, statutoryDays),
+          bonus_days: Number(grant?.bonus_days ?? 0),
+          total_days: Math.max(0, totalDays),
+          used_days: Number(grant?.used_days ?? 0),
+          pending_days: Number(grant?.pending_days ?? 0),
+          remaining_days: Math.max(0, remainingDays),
+          calculation_note: grant?.calculation_note || `로그인 시 계산됨 (근속 ${serviceInfo.years}년 ${serviceInfo.months}개월)`,
+          years_of_service: serviceInfo.years,
+          months_of_service: serviceInfo.months,
+        }
+      });
+    } catch (err: any) {
+      console.error(`Failed to process leave grant for ${user.id}:`, err.message);
+      const serviceInfo = calculateServiceInfo(user.hire_date);
+      return NextResponse.json({
+        success: true,
+        user: {
+          ...user,
+          statutory_days: Math.max(0, serviceInfo.statutoryDays),
+          bonus_days: 0,
+          total_days: Math.max(0, serviceInfo.statutoryDays),
+          used_days: 0,
+          pending_days: 0,
+          remaining_days: Math.max(0, serviceInfo.statutoryDays),
+          calculation_note: `근속 ${serviceInfo.years}년 ${serviceInfo.months}개월 (매뉴얼 계산)`,
+          years_of_service: serviceInfo.years,
+          months_of_service: serviceInfo.months,
+        }
+      });
+    }
   } catch (error: any) {
     return NextResponse.json({ error: error.message || '로그인 처리 중 오류가 발생했습니다.' }, { status: 500 });
   }

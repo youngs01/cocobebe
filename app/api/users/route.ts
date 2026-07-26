@@ -43,12 +43,18 @@ export async function GET() {
       const serviceInfo = calculateServiceInfo(user.hire_date);
       const { years, months } = calculateYearsOfService(user.hire_date);
       
-      const statutoryDays = Number(latestGrant?.statutory_days ?? serviceInfo.statutoryDays ?? 0);
+      // 0이나 null/undefined인 경우 모두 계산값으로 대체
+      const dbStatutoryDays = Number(latestGrant?.statutory_days ?? -1);
+      const statutoryDays = dbStatutoryDays > 0 ? dbStatutoryDays : serviceInfo.statutoryDays;
+      
       const bonusDays = Number(latestGrant?.bonus_days ?? 0);
-      const totalDays = Number(latestGrant?.total_days ?? statutoryDays);
+      const dbTotalDays = Number(latestGrant?.total_days ?? -1);
+      const totalDays = dbTotalDays > 0 ? dbTotalDays : statutoryDays;
+      
       const usedDays = Number(latestGrant?.used_days ?? 0);
       const pendingDays = Number(latestGrant?.pending_days ?? 0);
-      const remainingDays = Number(latestGrant?.remaining_days ?? Math.max(0, totalDays - usedDays - pendingDays));
+      const dbRemainingDays = Number(latestGrant?.remaining_days ?? -1);
+      const remainingDays = dbRemainingDays >= 0 ? dbRemainingDays : Math.max(0, totalDays - usedDays - pendingDays);
 
       return {
         ...user,
