@@ -678,8 +678,8 @@ export default function App() {
               />
             )}
 
-            {/* VIEW 3: Daycare Calendar */}
-            {activeTab === 'calendar' && (
+            {/* VIEW 3: Daycare Calendar (Manager/Director only) */}
+            {activeTab === 'calendar' && (currentRole === 'manager' || currentRole === 'director') && (
               <CalendarScheduleView
                 holidays={holidays}
                 schedules={schedules}
@@ -709,8 +709,11 @@ export default function App() {
               <DirectorDashboardView
                 users={users}
                 leaveRequests={leaveRequests}
+                holidays={holidays}
                 onNavigateToApproval={() => setActiveTab('approval')}
                 onNavigateToTeachers={() => setActiveTab('teachers')}
+                onAddHoliday={handleAddHoliday}
+                onDeleteHoliday={handleDeleteHoliday}
               />
             )}
           </>
