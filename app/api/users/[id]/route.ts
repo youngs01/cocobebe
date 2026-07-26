@@ -59,8 +59,8 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
     await ensureDatabaseSchema();
 
     const requesterRole = new URL(request.url).searchParams.get('requesterRole');
-    if (requesterRole !== 'director') {
-      return NextResponse.json({ error: '원장만 교직원 계정을 삭제할 수 있습니다.' }, { status: 403 });
+    if (requesterRole !== 'director' && requesterRole !== 'manager') {
+      return NextResponse.json({ error: '관리자 또는 원장만 교직원 계정을 삭제할 수 있습니다.' }, { status: 403 });
     }
 
     const { id } = await props.params;

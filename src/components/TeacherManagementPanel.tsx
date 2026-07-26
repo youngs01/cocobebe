@@ -266,13 +266,13 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                     </button>
                   )}
 
-                  {/* Delete Account Button (원장 전용, 교사/관리자 모두 삭제 가능) */}
-                  {currentUser.role === 'director' && u.role !== 'director' && (
+                  {/* Delete Account Button (관리자/원장 모두 삭제 가능, 본인 제외) */}
+                  {(currentUser.role === 'manager' || currentUser.role === 'director') && currentUser.id !== u.id && (
                     <button
                       onClick={() => handleDelete(u)}
                       disabled={isProcessing}
                       className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-colors border border-transparent hover:border-rose-200 cursor-pointer"
-                      title={u.role === 'manager' ? '관리자 계정 삭제' : '교사 계정 삭제'}
+                      title={u.role === 'director' ? '원장 계정 삭제' : '교사 계정 삭제'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
