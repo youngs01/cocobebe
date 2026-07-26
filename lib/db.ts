@@ -29,8 +29,19 @@ function getCurrentYear() {
 }
 
 export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date()) {
+  if (!hireDate || typeof hireDate !== 'string') {
+    return { years: 0, months: 0, statutoryDays: 0 };
+  }
+
   const start = new Date(`${hireDate}T00:00:00Z`);
+  if (isNaN(start.getTime())) {
+    return { years: 0, months: 0, statutoryDays: 0 };
+  }
+
   const end = new Date(Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth(), asOfDate.getUTCDate()));
+  if (isNaN(end.getTime())) {
+    return { years: 0, months: 0, statutoryDays: 0 };
+  }
 
   const totalMonths = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
   const completedMonths = Math.max(0, totalMonths);
@@ -53,44 +64,51 @@ export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date
 }
 
 export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
-  const { statutoryDays, years, months } = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
-  const bonusDays = 0;
-  const totalDays = statutoryDays + bonusDays;
-  const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;
+  try {
+    const serviceInfo = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
+    const { statutoryDays, years, months } = serviceInfo;
+    
+    const bonusDays = 0;
+    const totalDays = Math.max(0, statutoryDays + bonusDays);
+    const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;
 
-  const existingGrant = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
-  if (existingGrant.rows.length > 0) {
-    const current = existingGrant.rows[0];
-    const usedDays = Number(current.used_days || 0);
-    const pendingDays = Number(current.pending_days || 0);
-    const remainingDays = Number((totalDays - usedDays - pendingDays).toFixed(1));
+    const existingGrant = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
+    if (existingGrant.rows.length > 0) {
+      const current = existingGrant.rows[0];
+      const usedDays = Number(current.used_days || 0);
+      const pendingDays = Number(current.pending_days || 0);
+      const remainingDays = Math.max(0, totalDays - usedDays - pendingDays);
+
+      await query(
+        `UPDATE leave_grants
+         SET statutory_days = $1, bonus_days = $2, total_days = $3, remaining_days = $4, calculation_note = $5
+         WHERE user_id = $6 AND year = $7`,
+        [statutoryDays, bonusDays, totalDays, remainingDays, note, userId, year]
+      );
+
+      return {
+        ...current,
+        statutory_days: statutoryDays,
+        bonus_days: bonusDays,
+        total_days: totalDays,
+        remaining_days: remainingDays,
+        calculation_note: note,
+      };
+    }
+
+    const remainingDays = totalDays;
 
     await query(
-      `UPDATE leave_grants
-       SET statutory_days = $1, bonus_days = $2, total_days = $3, remaining_days = $4, calculation_note = $5
-       WHERE user_id = $6 AND year = $7`,
-      [statutoryDays, bonusDays, totalDays, remainingDays, note, userId, year]
+      `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [userId, year, statutoryDays, bonusDays, totalDays, 0, 0, remainingDays, note]
     );
 
-    return {
-      ...current,
-      statutory_days: statutoryDays,
-      bonus_days: bonusDays,
-      total_days: totalDays,
-      remaining_days: remainingDays,
-      calculation_note: note,
-    };
+    return { user_id: userId, year, statutory_days: statutoryDays, bonus_days: bonusDays, total_days: totalDays, used_days: 0, pending_days: 0, remaining_days: remainingDays, calculation_note: note };
+  } catch (err: any) {
+    console.error(`Error in ensureLeaveGrantForUser for ${userId}:`, err.message);
+    throw err;
   }
-
-  const remainingDays = Number(totalDays.toFixed(1));
-
-  await query(
-    `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-    [userId, year, statutoryDays, bonusDays, totalDays, 0, 0, remainingDays, note]
-  );
-
-  return { user_id: userId, year, statutory_days: statutoryDays, bonus_days: bonusDays, total_days: totalDays, used_days: 0, pending_days: 0, remaining_days: remainingDays, calculation_note: note };
 }
 
 export async function updateLeaveGrantBalance(userId: string, year: number, usedDelta: number) {

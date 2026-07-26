@@ -21,10 +21,14 @@ export async function GET() {
     const currentYear = new Date().getFullYear();
 
     for (const user of usersResult.rows) {
-      await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+      try {
+        await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+      } catch (err: any) {
+        console.error(`Failed to ensure leave grant for user ${user.id}:`, err.message);
+      }
     }
 
-    const grantsResult = await query(`SELECT * FROM leave_grants ORDER BY year ASC`);
+    const grantsResult = await query(`SELECT * FROM leave_grants WHERE year = $1 ORDER BY user_id ASC`, [currentYear]);
 
     const grantsByUser = new Map<string, any[]>();
     for (const grant of grantsResult.rows) {
@@ -38,21 +42,23 @@ export async function GET() {
       const latestGrant = grants[grants.length - 1] || null;
       const serviceInfo = calculateServiceInfo(user.hire_date);
       const { years, months } = calculateYearsOfService(user.hire_date);
+      
       const statutoryDays = Number(latestGrant?.statutory_days ?? serviceInfo.statutoryDays ?? 0);
-      const totalDays = Number(latestGrant?.total_days ?? statutoryDays ?? 0);
+      const bonusDays = Number(latestGrant?.bonus_days ?? 0);
+      const totalDays = Number(latestGrant?.total_days ?? statutoryDays);
       const usedDays = Number(latestGrant?.used_days ?? 0);
       const pendingDays = Number(latestGrant?.pending_days ?? 0);
-      const remainingDays = Number(latestGrant?.remaining_days ?? Math.max(0, totalDays - usedDays - pendingDays) ?? 0);
+      const remainingDays = Number(latestGrant?.remaining_days ?? Math.max(0, totalDays - usedDays - pendingDays));
 
       return {
         ...user,
-        statutory_days: statutoryDays,
-        bonus_days: Number(latestGrant?.bonus_days || 0),
-        total_days: totalDays,
+        statutory_days: Math.max(0, statutoryDays),
+        bonus_days: bonusDays,
+        total_days: Math.max(0, totalDays),
         used_days: usedDays,
         pending_days: pendingDays,
-        remaining_days: remainingDays,
-        calculation_note: latestGrant?.calculation_note || '기본값',
+        remaining_days: Math.max(0, remainingDays),
+        calculation_note: latestGrant?.calculation_note || `${serviceInfo.years}년 ${serviceInfo.months}개월 근속 기준`,
         years_of_service: years,
         months_of_service: months,
       };
