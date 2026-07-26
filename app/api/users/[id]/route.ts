@@ -58,6 +58,11 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
     await ensureDatabaseSchema();
 
+    const requesterRole = new URL(request.url).searchParams.get('requesterRole');
+    if (requesterRole !== 'director') {
+      return NextResponse.json({ error: '원장만 교직원 계정을 삭제할 수 있습니다.' }, { status: 403 });
+    }
+
     const { id } = await props.params;
 
     // 실제 삭제 처리: 관련 연차 신청/스케줄/연차 Grant도 함께 정리

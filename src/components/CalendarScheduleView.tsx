@@ -78,7 +78,7 @@ export const CalendarScheduleView: React.FC<CalendarScheduleViewProps> = ({
     }
   });
 
-  const isManagerOrDirector = currentUser.role === 'manager' || currentUser.role === 'director';
+  const isManagerOrDirector = currentUser.role === 'director';
 
   const handleOpenShiftModal = (dateStr: string) => {
     setSelectedDate(dateStr);

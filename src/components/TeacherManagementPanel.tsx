@@ -256,7 +256,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
 
                 <div className="flex items-center gap-1">
                   {/* Edit Teacher Info Button */}
-                  {(currentUser.role === 'manager' || currentUser.role === 'director' || currentUser.id === u.id) && (
+                  {(currentUser.role === 'director' || currentUser.id === u.id) && (
                     <button
                       onClick={() => openEditModal(u)}
                       className="p-1.5 text-[#718355] hover:text-[#344E41] hover:bg-[#F1F3E9] rounded-xl transition-colors border border-transparent hover:border-[#E9EDC9] cursor-pointer"
@@ -266,8 +266,8 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                     </button>
                   )}
 
-                  {/* Delete Teacher Account Button (관리자 / 원장 권한) */}
-                  {(currentUser.role === 'manager' || currentUser.role === 'director') && u.role === 'teacher' && (
+                  {/* Delete Teacher Account Button (원장 전용) */}
+                  {currentUser.role === 'director' && u.role === 'teacher' && (
                     <button
                       onClick={() => handleDelete(u)}
                       disabled={isProcessing}
@@ -460,7 +460,6 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                   className="w-full border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41]"
                 >
                   <option value="teacher">일반 교직원 (연차 신청)</option>
-                  <option value="manager">관리자 (승인 권한)</option>
                   <option value="director">원장 (전체 승인/관리)</option>
                 </select>
               </div>
@@ -584,7 +583,6 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
                   className="w-full border border-[#E9EDC9] rounded-xl px-3 py-2 text-[#344E41]"
                 >
                   <option value="teacher">교사 (일반)</option>
-                  <option value="manager">관리자 (승인 권한)</option>
                   <option value="director">원장 (전체 관리)</option>
                 </select>
               </div>

@@ -88,7 +88,6 @@ export default function App() {
   const handleLoginSuccess = (user: User) => {
     setLoggedInUser(user);
     if (user.role === 'director') setActiveTab('director_dashboard');
-    else if (user.role === 'manager') setActiveTab('approval');
     else setActiveTab('my_leave');
     // 필수 데이터만 먼저 로드 (더 빠른 로그인)
     fetchEssentialData();
@@ -438,7 +437,7 @@ export default function App() {
             내 연차 & 신청
           </button>
 
-          {(currentRole === 'manager' || currentRole === 'director') && (
+          {(currentRole === 'director') && (
             <button
               onClick={() => setActiveTab('approval')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
@@ -456,7 +455,7 @@ export default function App() {
             </button>
           )}
 
-          {(currentRole === 'manager' || currentRole === 'director') && (
+          {(currentRole === 'director') && (
             <button
               onClick={() => setActiveTab('teachers')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -469,7 +468,7 @@ export default function App() {
             </button>
           )}
 
-          {(currentRole === 'director' || currentRole === 'manager') && (
+          {(currentRole === 'director') && (
             <button
               onClick={() => setActiveTab('director_dashboard')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -478,7 +477,7 @@ export default function App() {
                   : 'text-[#344E41]/80 hover:bg-[#F1F3E9]'
               }`}
             >
-              {currentRole === 'director' ? '원장 대시보드' : '공휴일 관리'}
+              원장 대시보드
             </button>
           )}
 

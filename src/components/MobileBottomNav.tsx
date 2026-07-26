@@ -17,8 +17,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
 }) => {
   const navItems = [
     { id: 'my_leave', label: '내 연차', icon: Home, roles: ['teacher', 'manager', 'director'] },
-    { id: 'approval', label: '결재 승인', icon: FileCheck, roles: ['manager', 'director'], badge: pendingCount },
-    { id: 'teachers', label: '교사 관리', icon: Users, roles: ['manager', 'director'] },
+    { id: 'approval', label: '결재 승인', icon: FileCheck, roles: ['director'], badge: pendingCount },
+    { id: 'teachers', label: '교사 관리', icon: Users, roles: ['director'] },
     { id: 'director_dashboard', label: '원장 대시보드', icon: LayoutDashboard, roles: ['director'] },
   ];
 

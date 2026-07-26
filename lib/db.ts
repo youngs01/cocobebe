@@ -271,7 +271,7 @@ export async function ensureDatabaseSchema() {
         'coco',
         'Dbsgofks03!',
         '관리자',
-        'manager',
+        'director',
         '2020-01-01',
         '원장실/행정',
         '010-0000-0000',
