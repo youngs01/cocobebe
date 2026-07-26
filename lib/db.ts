@@ -60,12 +60,12 @@ function calcAnnualLeave(hireDate: string | Date | null | undefined, refDate: Da
     return 0;
   }
 
-  const startYear = hire.getUTCFullYear();
-  const startMonth = hire.getUTCMonth();
-  const startDay = hire.getUTCDate();
-  const refYear = ref.getUTCFullYear();
-  const refMonth = ref.getUTCMonth();
-  const refDay = ref.getUTCDate();
+  const startYear = hire.getFullYear();
+  const startMonth = hire.getMonth();
+  const startDay = hire.getDate();
+  const refYear = ref.getFullYear();
+  const refMonth = ref.getMonth();
+  const refDay = ref.getDate();
 
   let totalMonths = (refYear - startYear) * 12 + (refMonth - startMonth);
   if (refDay < startDay) {
@@ -91,12 +91,12 @@ export function calculateServiceInfo(hireDate: string | Date | null | undefined,
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
-  const startYear = hire.getUTCFullYear();
-  const startMonth = hire.getUTCMonth();
-  const startDay = hire.getUTCDate();
-  const refYear = ref.getUTCFullYear();
-  const refMonth = ref.getUTCMonth();
-  const refDay = ref.getUTCDate();
+  const startYear = hire.getFullYear();
+  const startMonth = hire.getMonth();
+  const startDay = hire.getDate();
+  const refYear = ref.getFullYear();
+  const refMonth = ref.getMonth();
+  const refDay = ref.getDate();
 
   let totalMonths = (refYear - startYear) * 12 + (refMonth - startMonth);
   if (refDay < startDay) {
