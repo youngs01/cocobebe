@@ -60,12 +60,9 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
 
     const { id } = await props.params;
 
-    // 사용자를 inactive 상태로 변경 (삭제 대신 비활성화)
+    // 실제 삭제 처리: 관련 연차 신청/스케줄/연차 Grant도 함께 정리
     const result = await query(
-      `UPDATE users 
-       SET status = 'inactive'
-       WHERE id = $1
-       RETURNING id, name, role`,
+      `DELETE FROM users WHERE id = $1 RETURNING id, name, role`,
       [id]
     );
 
