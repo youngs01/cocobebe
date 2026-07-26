@@ -3,29 +3,34 @@ import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 
 export async function GET() {
   try {
+    console.log('[API] GET /api/users - START');
+    
     if (!process.env.DATABASE_URL) {
+      console.log('[API] DATABASE_URL not set');
       return NextResponse.json({ error: 'DATABASE_URL이 설정되지 않았습니다.' }, { status: 500 });
     }
 
     await ensureDatabaseSchema();
     const currentYear = new Date().getFullYear();
+    console.log('[API] Current year:', currentYear);
 
     // 1. 모든 직원 조회
     const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
     const users = usersResult.rows;
+    console.log('[API] Total users:', users.length);
 
     const usersWithLeave = [];
 
     for (const user of users) {
+      console.log(`[API] Processing user: ${user.name} (${user.id}), hire_date: ${user.hire_date}`);
       try {
         // 2. 각 직원별로 해당 연도(currentYear)의 연차 데이터 생성/조회
         const leaveGrant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
         
-        console.log(`[DEBUG] User: ${user.name}, Leave Grant:`, {
+        console.log(`[API] Leave grant for ${user.name}:`, {
           statutory_days: leaveGrant.statutory_days,
           total_days: leaveGrant.total_days,
           used_days: leaveGrant.used_days,
-          pending_days: leaveGrant.pending_days,
           remaining_days: leaveGrant.remaining_days,
         });
 
@@ -41,8 +46,7 @@ export async function GET() {
           calculation_note: leaveGrant.calculation_note,
         });
       } catch (err: any) {
-        console.error(`Failed to ensure leave grant for user ${user.id}:`, err.message);
-        console.error(`Stack:`, err.stack);
+        console.error(`[API] Failed for ${user.name}:`, err.message, err.stack);
         // 오류 발생 시 기본값으로 추가
         usersWithLeave.push({
           ...user,
@@ -57,9 +61,10 @@ export async function GET() {
       }
     }
 
+    console.log('[API] GET /api/users - SUCCESS, returning', usersWithLeave.length, 'users');
     return NextResponse.json(usersWithLeave);
   } catch (error: any) {
-    console.error('Failed to fetch users with leave:', error);
+    console.error('[API] GET /api/users - ERROR:', error.message, error.stack);
     return NextResponse.json({ error: error.message || '사용자 조회 실패' }, { status: 500 });
   }
 }
