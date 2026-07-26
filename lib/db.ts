@@ -33,7 +33,9 @@ export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
-  const start = new Date(`${hireDate}T00:00:00Z`);
+  // Handle both "2020-01-01" and "2020-01-01T00:00:00.000Z" formats
+  let dateStr = hireDate.includes('T') ? hireDate : `${hireDate}T00:00:00Z`;
+  const start = new Date(dateStr);
   if (isNaN(start.getTime())) {
     return { years: 0, months: 0, statutoryDays: 0 };
   }
