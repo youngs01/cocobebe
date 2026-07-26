@@ -14,8 +14,8 @@ export async function GET() {
     const currentYear = new Date().getFullYear();
     console.log('[API] Current year:', currentYear);
 
-    // 1. 모든 직원 조회
-    const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
+    // 1. 활성 상태인 직원만 조회 (삭제된 계정은 제외)
+    const usersResult = await query(`SELECT * FROM users WHERE status = 'active' ORDER BY name ASC`);
     const users = usersResult.rows;
     console.log('[API] Total users:', users.length);
 

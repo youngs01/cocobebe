@@ -90,6 +90,7 @@ export const TeacherManagementPanel: React.FC<TeacherManagementPanelProps> = ({
   };
 
   const filteredAndSortedUsers = users
+    .filter((u) => u.status !== 'inactive')
     .filter((u) => {
       return (
         u.name.includes(searchTerm) ||
