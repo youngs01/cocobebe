@@ -112,9 +112,6 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = ({
             <span className="text-xl sm:text-2xl font-black text-[#344E41]">{users.length}명</span>
             <span className="text-[10px] sm:text-xs text-[#A3B18A]">(교사 {teachers.length}명)</span>
           </div>
-          <span className="text-[10px] sm:text-[11px] text-[#A3B18A] block pt-1">
-            4개 학급
-          </span>
         </div>
 
         {/* Metric 2: Pending Requests */}
