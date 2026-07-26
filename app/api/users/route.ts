@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
+import { calculateServiceInfo, ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 
 function calculateYearsOfService(hireDate: string) {
   const start = new Date(`${hireDate}T00:00:00Z`);
@@ -36,15 +36,22 @@ export async function GET() {
     const users = usersResult.rows.map((user: any) => {
       const grants = grantsByUser.get(user.id) || [];
       const latestGrant = grants[grants.length - 1] || null;
+      const serviceInfo = calculateServiceInfo(user.hire_date);
       const { years, months } = calculateYearsOfService(user.hire_date);
+      const statutoryDays = Number(latestGrant?.statutory_days ?? serviceInfo.statutoryDays ?? 0);
+      const totalDays = Number(latestGrant?.total_days ?? statutoryDays ?? 0);
+      const usedDays = Number(latestGrant?.used_days ?? 0);
+      const pendingDays = Number(latestGrant?.pending_days ?? 0);
+      const remainingDays = Number(latestGrant?.remaining_days ?? Math.max(0, totalDays - usedDays - pendingDays) ?? 0);
+
       return {
         ...user,
-        statutory_days: Number(latestGrant?.statutory_days || 15),
+        statutory_days: statutoryDays,
         bonus_days: Number(latestGrant?.bonus_days || 0),
-        total_days: Number(latestGrant?.total_days || latestGrant?.statutory_days || 15),
-        used_days: Number(latestGrant?.used_days || 0),
-        pending_days: Number(latestGrant?.pending_days || 0),
-        remaining_days: Number(latestGrant?.remaining_days || latestGrant?.total_days || 15),
+        total_days: totalDays,
+        used_days: usedDays,
+        pending_days: pendingDays,
+        remaining_days: remainingDays,
         calculation_note: latestGrant?.calculation_note || '기본값',
         years_of_service: years,
         months_of_service: months,

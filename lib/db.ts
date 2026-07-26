@@ -28,23 +28,24 @@ function getCurrentYear() {
   return new Date().getFullYear();
 }
 
-function calculateServiceInfo(hireDate: string, asOfYear: number) {
+export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date()) {
   const start = new Date(`${hireDate}T00:00:00Z`);
-  const end = new Date(`${asOfYear}-12-31T00:00:00Z`);
+  const end = new Date(Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth(), asOfDate.getUTCDate()));
 
   const totalMonths = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
-  const years = Math.max(0, Math.floor(totalMonths / 12));
-  const months = Math.max(0, totalMonths % 12);
+  const completedMonths = Math.max(0, totalMonths);
+  const years = Math.max(0, Math.floor(completedMonths / 12));
+  const months = Math.max(0, completedMonths % 12);
 
   let statutoryDays = 0;
-  if (years < 1) {
-    statutoryDays = Math.min(11, months);
-  } else if (years === 1) {
-    statutoryDays = 15;
-  } else if (years >= 2 && years < 3) {
+  if (completedMonths < 1) {
+    statutoryDays = 0;
+  } else if (completedMonths < 12) {
+    statutoryDays = Math.min(11, completedMonths);
+  } else if (years < 3) {
     statutoryDays = 15;
   } else {
-    const additional = Math.floor((years - 3) / 2) + 1;
+    const additional = Math.floor((years - 3) / 2);
     statutoryDays = Math.min(25, 15 + additional);
   }
 
@@ -52,7 +53,7 @@ function calculateServiceInfo(hireDate: string, asOfYear: number) {
 }
 
 export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
-  const { statutoryDays, years, months } = calculateServiceInfo(hireDate, year);
+  const { statutoryDays, years, months } = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
   const bonusDays = 0;
   const totalDays = statutoryDays + bonusDays;
   const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;

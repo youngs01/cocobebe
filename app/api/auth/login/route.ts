@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ensureDatabaseSchema, query } from '@/lib/db';
+import { ensureDatabaseSchema, ensureLeaveGrantForUser, query, calculateServiceInfo } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -23,7 +23,25 @@ export async function POST(request: Request) {
     }
 
     const user = result.rows[0];
-    return NextResponse.json({ success: true, user });
+    const currentYear = new Date().getFullYear();
+    const grant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+    const serviceInfo = calculateServiceInfo(user.hire_date);
+
+    return NextResponse.json({
+      success: true,
+      user: {
+        ...user,
+        statutory_days: Number(grant?.statutory_days ?? serviceInfo.statutoryDays ?? 0),
+        bonus_days: Number(grant?.bonus_days ?? 0),
+        total_days: Number(grant?.total_days ?? serviceInfo.statutoryDays ?? 0),
+        used_days: Number(grant?.used_days ?? 0),
+        pending_days: Number(grant?.pending_days ?? 0),
+        remaining_days: Number(grant?.remaining_days ?? grant?.total_days ?? serviceInfo.statutoryDays ?? 0),
+        calculation_note: grant?.calculation_note || '로그인 시 계산됨',
+        years_of_service: serviceInfo.years,
+        months_of_service: serviceInfo.months,
+      }
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || '로그인 처리 중 오류가 발생했습니다.' }, { status: 500 });
   }
