@@ -45,7 +45,7 @@ export const LaborLawInfoModal: React.FC<LaborLawInfoModalProps> = ({ isOpen, on
                 <span>1년 미만 근로자 (신입 교사)</span>
               </div>
               <p className="text-xs text-[#344E41]/90 leading-relaxed">
-                <strong className="font-semibold">근로기준법 제60조 제2항:</strong> 1개월 개근 시 1일의 유급휴가가 발생합니다. 1년 동안 최대 <strong className="font-bold underline decoration-[#718355]">11일</strong>까지 월별로 차곡차곡 연차가 발생합니다.
+                <strong className="font-semibold">근로기준법 제60조 제2항:</strong> 1개월 개근 시 1일의 유급휴가가 발생합니다. 1년 미만 근속자는 최대 <strong className="font-bold underline decoration-[#718355]">11일</strong>까지 월별로 차곡차곡 연차가 발생합니다.
               </p>
               <div className="bg-white/80 rounded-lg p-2.5 text-[11px] text-[#344E41] border border-[#E9EDC9] font-mono">
                 예) 입사 6개월차 교사 → 6일 연차 자동 생성
@@ -59,10 +59,10 @@ export const LaborLawInfoModal: React.FC<LaborLawInfoModalProps> = ({ isOpen, on
                 <span>1년 이상 근로자 (재직 교사)</span>
               </div>
               <p className="text-xs text-[#344E41]/90 leading-relaxed">
-                <strong className="font-semibold">근로기준법 제60조 제1항 및 제4항:</strong> 1년 이상 출근율 80% 이상 시 <strong className="font-bold underline decoration-[#718355]">15일</strong> 부여. 3년차부터 매 2년마다 1일씩 가산되어 최대 <strong className="font-bold underline decoration-[#718355]">25일</strong>까지 늘어납니다.
+                <strong className="font-semibold">근로기준법 제60조 제1항 및 제4항:</strong> 1년 이상 근속자는 기본 <strong className="font-bold underline decoration-[#718355]">15일</strong>이 부여되며, 3년 차부터 매 2년마다 1일씩 가산되어 최대 <strong className="font-bold underline decoration-[#718355]">25일</strong>까지 늘어납니다.
               </p>
               <div className="bg-white/80 rounded-lg p-2.5 text-[11px] text-[#344E41] border border-[#E9EDC9] font-mono">
-                예) 근속 3년차 → 15일 + 1일(가산) = 총 16일
+                예) 3년차 → 15일, 5년차 → 16일, 7년차 → 17일
               </div>
             </div>
           </div>
@@ -95,17 +95,17 @@ export const LaborLawInfoModal: React.FC<LaborLawInfoModalProps> = ({ isOpen, on
                   </tr>
                   <tr className="hover:bg-[#FDFCF8]">
                     <td className="py-2 px-3 font-semibold">3 ~ 4년차</td>
-                    <td className="py-2 px-3 text-[#718355] font-bold">16일</td>
-                    <td className="py-2 px-3 text-[#A3B18A]">15일 + 1일 가산</td>
+                    <td className="py-2 px-3 text-[#718355] font-bold">15일</td>
+                    <td className="py-2 px-3 text-[#A3B18A]">기본 15일</td>
                   </tr>
                   <tr className="hover:bg-[#FDFCF8]">
                     <td className="py-2 px-3 font-semibold">5 ~ 6년차</td>
-                    <td className="py-2 px-3 text-[#718355] font-bold">17일</td>
-                    <td className="py-2 px-3 text-[#A3B18A]">15일 + 2일 가산</td>
+                    <td className="py-2 px-3 text-[#718355] font-bold">16일</td>
+                    <td className="py-2 px-3 text-[#A3B18A]">3년차 이후 2년마다 1일 가산</td>
                   </tr>
                   <tr className="hover:bg-[#FDFCF8]">
                     <td className="py-2 px-3 font-semibold">7년차 이상</td>
-                    <td className="py-2 px-3 text-[#718355] font-bold">18일 ~ 최대 25일</td>
+                    <td className="py-2 px-3 text-[#718355] font-bold">17일 ~ 최대 25일</td>
                     <td className="py-2 px-3 text-[#A3B18A]">매 2년당 1일 가산 (최대 25일 한도)</td>
                   </tr>
                 </tbody>

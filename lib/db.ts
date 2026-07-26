@@ -29,48 +29,59 @@ function getCurrentYear() {
 }
 
 function calculateServiceInfo(hireDate: string, asOfYear: number) {
-  const start = new Date(`${hireDate}T00:00:00`);
-  const end = new Date(`${asOfYear}-12-31T00:00:00`);
-  const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
-  const years = Math.max(0, Math.floor(months / 12));
-  const remainingMonths = Math.max(0, months % 12);
+  const start = new Date(`${hireDate}T00:00:00Z`);
+  const end = new Date(`${asOfYear}-12-31T00:00:00Z`);
 
-  // 근로기준법 법정연차 계산
-  let statutoryDays: number;
-  
+  const totalMonths = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
+  const years = Math.max(0, Math.floor(totalMonths / 12));
+  const months = Math.max(0, totalMonths % 12);
+
+  let statutoryDays = 0;
   if (years < 1) {
-    // 1년 미만: 1개월마다 1개 (최대 11개)
-    statutoryDays = Math.min(11, remainingMonths);
-  } else if (years < 3) {
-    // 1년 이상 3년 미만: 15개
+    statutoryDays = Math.min(11, months);
+  } else if (years === 1) {
+    statutoryDays = 15;
+  } else if (years >= 2 && years < 3) {
     statutoryDays = 15;
   } else {
-    // 3년 이상: 15개 + (2년마다 1개 추가, 최대 25개)
-    const additionalYears = years - 2;
-    const additional = Math.ceil(additionalYears / 2);
+    const additional = Math.floor((years - 3) / 2) + 1;
     statutoryDays = Math.min(25, 15 + additional);
   }
 
-  return { years, months: remainingMonths, statutoryDays };
+  return { years, months, statutoryDays };
 }
 
 export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
-  const existingGrant = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
-  if (existingGrant.rows.length > 0) {
-    return existingGrant.rows[0];
-  }
-
-  const previousGrant = await query(
-    `SELECT remaining_days FROM leave_grants WHERE user_id = $1 AND year < $2 ORDER BY year DESC LIMIT 1`,
-    [userId, year]
-  );
-
   const { statutoryDays, years, months } = calculateServiceInfo(hireDate, year);
   const bonusDays = 0;
   const totalDays = statutoryDays + bonusDays;
-  const previousRemaining = previousGrant.rows[0]?.remaining_days != null ? Number(previousGrant.rows[0].remaining_days) : 0;
-  const remainingDays = Number((totalDays + previousRemaining).toFixed(1));
   const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;
+
+  const existingGrant = await query(`SELECT * FROM leave_grants WHERE user_id = $1 AND year = $2`, [userId, year]);
+  if (existingGrant.rows.length > 0) {
+    const current = existingGrant.rows[0];
+    const usedDays = Number(current.used_days || 0);
+    const pendingDays = Number(current.pending_days || 0);
+    const remainingDays = Number((totalDays - usedDays - pendingDays).toFixed(1));
+
+    await query(
+      `UPDATE leave_grants
+       SET statutory_days = $1, bonus_days = $2, total_days = $3, remaining_days = $4, calculation_note = $5
+       WHERE user_id = $6 AND year = $7`,
+      [statutoryDays, bonusDays, totalDays, remainingDays, note, userId, year]
+    );
+
+    return {
+      ...current,
+      statutory_days: statutoryDays,
+      bonus_days: bonusDays,
+      total_days: totalDays,
+      remaining_days: remainingDays,
+      calculation_note: note,
+    };
+  }
+
+  const remainingDays = Number(totalDays.toFixed(1));
 
   await query(
     `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)

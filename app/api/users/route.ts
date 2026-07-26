@@ -4,7 +4,7 @@ import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 function calculateYearsOfService(hireDate: string) {
   const start = new Date(`${hireDate}T00:00:00Z`);
   const now = new Date();
-  const totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+  const totalMonths = (now.getUTCFullYear() - start.getUTCFullYear()) * 12 + (now.getUTCMonth() - start.getUTCMonth());
   const years = Math.max(0, Math.floor(totalMonths / 12));
   const months = Math.max(0, totalMonths % 12);
   return { years, months };
@@ -18,6 +18,12 @@ export async function GET() {
 
     await ensureDatabaseSchema();
     const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
+    const currentYear = new Date().getFullYear();
+
+    for (const user of usersResult.rows) {
+      await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+    }
+
     const grantsResult = await query(`SELECT * FROM leave_grants ORDER BY year ASC`);
 
     const grantsByUser = new Map<string, any[]>();
