@@ -51,7 +51,7 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
 
   const getLeaveTypeBadge = (type: string) => {
     switch (type) {
-      case 'annual': return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">연차 (1일)</span>;
+      case 'annual': return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-200">연차</span>;
       case 'half_am': return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">오전반차 (0.5일)</span>;
       case 'half_pm': return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-900 border border-teal-200">오후반차 (0.5일)</span>;
       case 'sick': return <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-900 border border-rose-200">병가</span>;
@@ -85,7 +85,7 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
             <h2 className="text-lg font-bold">어린이집 교사 연차 결재 & 승인 관리</h2>
           </div>
           <p className="text-xs text-[#E9EDC9] mt-1">
-            원장({currentUser.role === 'director' ? currentUser.name : '김한나'}) 및 관리자 전용 • 승인 취소 시 남은 연차가 자동 복원됩니다.
+            원장({currentUser.role === 'director' ? currentUser.name : ''}) 및 관리자 전용 • 승인 취소 시 남은 연차가 자동 복원됩니다.
           </p>
         </div>
 

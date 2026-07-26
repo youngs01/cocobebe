@@ -261,7 +261,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
             </label>
             <div className="grid grid-cols-3 gap-2 text-xs">
               {[
-                { id: 'annual', label: '연차 (1일)', desc: '종일 휴가' },
+                { id: 'annual', label: '연차', desc: '종일 휴가' },
                 { id: 'half_am', label: '오전반차', desc: '0.5일 (오전)' },
                 { id: 'half_pm', label: '오후반차', desc: '0.5일 (오후)' },
                 { id: 'sick', label: '병가', desc: '의사 소견서' },
