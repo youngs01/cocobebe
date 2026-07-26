@@ -28,54 +28,79 @@ function getCurrentYear() {
   return new Date().getFullYear();
 }
 
+// 간단하고 정확한 연차 계산
+function calcAnnualLeave(hireDate: string | Date, refDate: Date = new Date()): number {
+  const hire = new Date(hireDate);
+  if (isNaN(hire.getTime())) {
+    console.log('[DEBUG] Invalid hire date:', hireDate);
+    return 0;
+  }
+
+  const ref = new Date(refDate);
+  let diffYears = ref.getFullYear() - hire.getFullYear();
+  const monthDiff = ref.getMonth() - hire.getMonth();
+  const dayDiff = ref.getDate() - hire.getDate();
+
+  // 아직 생일이 안 지났으면 1년을 빼기
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    diffYears--;
+  }
+
+  if (diffYears < 1) {
+    // 1년 미만: 월 1일씩 (최대 11일)
+    let months = (ref.getFullYear() - hire.getFullYear()) * 12 + (ref.getMonth() - hire.getMonth());
+    if (dayDiff < 0) months--;
+    const result = Math.max(0, Math.min(11, months));
+    console.log('[DEBUG] calcAnnualLeave < 1yr:', { diffYears, months, result });
+    return result;
+  } else {
+    // 1년 이상: 15일 + (diffYears - 1) / 2 추가 (최대 25일)
+    const extra = Math.floor((diffYears - 1) / 2);
+    const result = Math.min(25, 15 + extra);
+    console.log('[DEBUG] calcAnnualLeave >= 1yr:', { diffYears, extra, result });
+    return result;
+  }
+}
+
 export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date()) {
   if (!hireDate || typeof hireDate !== 'string') {
-    console.log('[DEBUG] calculateServiceInfo: Invalid hireDate', hireDate);
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
-  // Handle both "2020-01-01" and "2020-01-01T00:00:00.000Z" formats
-  let dateStr = hireDate.includes('T') ? hireDate : `${hireDate}T00:00:00Z`;
-  const start = new Date(dateStr);
-  if (isNaN(start.getTime())) {
-    console.log('[DEBUG] calculateServiceInfo: Invalid start date', dateStr);
+  const hire = new Date(hireDate);
+  if (isNaN(hire.getTime())) {
+    console.log('[DEBUG] calculateServiceInfo: Invalid date format', hireDate);
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
-  const end = new Date(Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth(), asOfDate.getUTCDate()));
-  if (isNaN(end.getTime())) {
-    console.log('[DEBUG] calculateServiceInfo: Invalid end date', asOfDate);
-    return { years: 0, months: 0, statutoryDays: 0 };
+  const ref = new Date(asOfDate);
+  let diffYears = ref.getFullYear() - hire.getFullYear();
+  const monthDiff = ref.getMonth() - hire.getMonth();
+  const dayDiff = ref.getDate() - hire.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    diffYears--;
   }
 
-  const totalMonths = (end.getUTCFullYear() - start.getUTCFullYear()) * 12 + (end.getUTCMonth() - start.getUTCMonth());
-  const completedMonths = Math.max(0, totalMonths);
-  const years = Math.max(0, Math.floor(completedMonths / 12));
-  const months = Math.max(0, completedMonths % 12);
+  const months = (ref.getFullYear() - hire.getFullYear()) * 12 + (ref.getMonth() - hire.getMonth());
+  const adjustedMonths = dayDiff < 0 ? months - 1 : months;
+  const adjustedMonthsOfService = Math.max(0, adjustedMonths % 12);
 
-  let statutoryDays = 0;
-  if (completedMonths < 1) {
-    statutoryDays = 0;
-  } else if (completedMonths < 12) {
-    // 1년 미만: 월 1일씩 (최대 11일)
-    statutoryDays = Math.min(11, completedMonths);
-  } else {
-    // 1년 이상: 15일 + (years - 1) / 2 추가 (최대 25일)
-    const extra = Math.floor((years - 1) / 2);
-    statutoryDays = Math.min(25, 15 + extra);
-  }
+  const statutoryDays = calcAnnualLeave(hireDate, asOfDate);
 
-  console.log('[DEBUG] calculateServiceInfo:', {
+  console.log('[DEBUG] calculateServiceInfo result:', {
     hireDate,
-    asOfDate: end.toISOString(),
-    totalMonths,
-    years,
-    months,
-    completedMonths,
+    asOfDate: ref.toDateString(),
+    years: Math.max(0, diffYears),
+    months: adjustedMonthsOfService,
     statutoryDays,
   });
 
-  return { years, months, statutoryDays };
+  return {
+    years: Math.max(0, diffYears),
+    months: adjustedMonthsOfService,
+    statutoryDays,
+  };
 }
 
 export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
