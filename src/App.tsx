@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { User, UserRole, LeaveRequest, Holiday, TeacherSchedule, LeaveType } from './types';
+import { User, UserRole, LeaveRequest, Holiday, LeaveType } from './types';
 import { Header } from './components/Header';
 import { LoginForm } from './components/LoginForm';
 import { LaborLawInfoModal } from './components/LaborLawInfoModal';
 import { LeaveRequestModal } from './components/LeaveRequestModal';
 import { LeaveApprovalPanel } from './components/LeaveApprovalPanel';
 import { TeacherManagementPanel } from './components/TeacherManagementPanel';
-import { CalendarScheduleView } from './components/CalendarScheduleView';
 import { DirectorDashboardView } from './components/DirectorDashboardView';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { PlusCircle, Calendar, CheckCircle2, Clock, RotateCcw, AlertCircle, Sparkles, Building2, UserCheck, ShieldCheck, FileText, ChevronRight, Scale } from 'lucide-react';
@@ -15,7 +14,6 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [schedules, setSchedules] = useState<TeacherSchedule[]>([]);
 
   // Authentication State (NO AUTO LOGIN - Must login with ID & Password)
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
@@ -53,23 +51,20 @@ export default function App() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const [usersRes, reqsRes, holRes, schRes, healthRes] = await Promise.all([
+      const [usersRes, reqsRes, holRes, healthRes] = await Promise.all([
         fetch('/api/users').then(r => r.json()),
         fetch('/api/leave-requests').then(r => r.json()),
         fetch('/api/holidays').then(r => r.json()),
-        fetch('/api/schedules').then(r => r.json()),
         fetch('/api/health').then(r => r.json()).catch(() => ({ dbConnected: false }))
       ]);
 
       const fetchedUsers = Array.isArray(usersRes) ? usersRes : [];
       const fetchedLeaveRequests = Array.isArray(reqsRes) ? reqsRes : [];
       const fetchedHolidays = Array.isArray(holRes) ? holRes : [];
-      const fetchedSchedules = Array.isArray(schRes) ? schRes : [];
 
       setUsers(fetchedUsers);
       setLeaveRequests(fetchedLeaveRequests);
       setHolidays(fetchedHolidays);
-      setSchedules(fetchedSchedules);
       if (healthRes && typeof healthRes.dbConnected === 'boolean') {
         setDbConnected(healthRes.dbConnected);
       }
@@ -114,32 +109,10 @@ export default function App() {
       
       setUsers(fetchedUsers);
       setLeaveRequests(fetchedLeaveRequests);
-      
-      // holidays와 schedules는 백그라운드에서 나중에 로드
-      loadOptionalData();
     } catch (err) {
       console.error('Failed to fetch essential data:', err);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 선택 데이터 백그라운드 로드 (holidays, schedules)
-  const loadOptionalData = async () => {
-    try {
-      const [holRes, schRes, healthRes] = await Promise.all([
-        fetch('/api/holidays').then(r => r.json()),
-        fetch('/api/schedules').then(r => r.json()),
-        fetch('/api/health').then(r => r.json()).catch(() => ({ dbConnected: false }))
-      ]);
-      
-      const fetchedHolidays = Array.isArray(holRes) ? holRes : [];
-      const fetchedSchedules = Array.isArray(schRes) ? schRes : [];
-      
-      setHolidays(fetchedHolidays);
-      setSchedules(fetchedSchedules);
-    } catch (err) {
-      console.error('Failed to fetch optional data:', err);
     }
   };
 
@@ -352,18 +325,6 @@ export default function App() {
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  // Save Schedule Shift
-  const handleSaveSchedule = async (scheduleData: any) => {
-    const res = await fetch('/api/schedules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(scheduleData)
-    });
-    const data = await res.json();
-    alert(data.message);
-    await fetchData();
   };
 
   // Add Custom Red Day / Holiday
@@ -675,19 +636,6 @@ export default function App() {
                 onReject={handleRejectLeave}
                 onCancelApproved={handleCancelApprovedLeave}
                 isProcessing={isProcessing}
-              />
-            )}
-
-            {/* VIEW 3: Daycare Calendar (Manager/Director only) */}
-            {activeTab === 'calendar' && (currentRole === 'manager' || currentRole === 'director') && (
-              <CalendarScheduleView
-                holidays={holidays}
-                schedules={schedules}
-                users={users}
-                currentUser={currentUser}
-                onSaveSchedule={handleSaveSchedule}
-                onAddHoliday={handleAddHoliday}
-                onDeleteHoliday={handleDeleteHoliday}
               />
             )}
 

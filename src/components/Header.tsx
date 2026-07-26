@@ -1,6 +1,6 @@
 import React from 'react';
 import { User } from '../types';
-import { ShieldCheck, Calendar, Database, Sparkles, Building2, LogOut } from 'lucide-react';
+import { ShieldCheck, Database, Sparkles, Building2, LogOut } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: User;
@@ -86,28 +86,11 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Bottom Sub-bar: Public Holiday Status & Legal Info Link */}
-        <div className="mt-1.5 sm:mt-2.5 pt-1.5 sm:pt-2 border-t border-[#E9EDC9]/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 text-[10px] sm:text-xs">
-          
-          {/* Public & Substitute Holiday Display Indicator */}
-          <div className="flex items-center gap-1 text-[#344E41] text-left">
-            <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#718355] opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#718355]"></span>
-            </span>
-            <span className="font-bold text-[#344E41] bg-[#F1F3E9] px-2 py-0.5 rounded-lg border border-[#E9EDC9] flex items-center gap-1 text-[11px] sm:text-xs">
-              <Calendar className="w-3.5 h-3.5 text-[#718355]" />
-              관공서 공휴일 & 대체공휴일 달력 자동 반영
-            </span>
-            <span className="text-[11px] text-[#718355] hidden md:inline">
-              (주말/공휴일 소정근로시간 자동제외)
-            </span>
-          </div>
-
-          {/* Labor Law Guide Link */}
+        {/* Bottom Sub-bar: Legal Info Link */}
+        <div className="mt-1.5 sm:mt-2.5 pt-1.5 sm:pt-2 border-t border-[#E9EDC9]/60">
           <button
             onClick={onOpenLaborLawModal}
-            className="text-[#344E41] hover:text-[#718355] bg-[#F1F3E9] hover:bg-[#E9EDC9] px-2.5 py-1 rounded-lg border border-[#E9EDC9] font-semibold text-left sm:text-center flex items-center gap-1.5 transition-colors cursor-pointer text-[11px] sm:text-xs w-full sm:w-auto justify-center"
+            className="text-[#344E41] hover:text-[#718355] bg-[#F1F3E9] hover:bg-[#E9EDC9] px-2.5 py-1 rounded-lg border border-[#E9EDC9] font-semibold text-left sm:text-center flex items-center gap-1.5 transition-colors cursor-pointer text-[11px] sm:text-xs w-full justify-center"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[#718355] shrink-0" />
             근로기준법 제60조 법정연차 생성 기준
