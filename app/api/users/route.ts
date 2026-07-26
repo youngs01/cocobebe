@@ -2,9 +2,22 @@ import { NextResponse } from 'next/server';
 import { calculateServiceInfo, ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 
 function calculateYearsOfService(hireDate: string) {
-  const start = new Date(`${hireDate}T00:00:00Z`);
+  if (!hireDate || typeof hireDate !== 'string') {
+    return { years: 0, months: 0 };
+  }
+  
+  // Handle both "2020-01-01" and "2020-01-01T00:00:00.000Z" formats
+  let dateStr = hireDate.includes('T') ? hireDate : `${hireDate}T00:00:00Z`;
+  const start = new Date(dateStr);
+  if (isNaN(start.getTime())) {
+    return { years: 0, months: 0 };
+  }
+
+  // Use UTC for current date
   const now = new Date();
-  const totalMonths = (now.getUTCFullYear() - start.getUTCFullYear()) * 12 + (now.getUTCMonth() - start.getUTCMonth());
+  const endUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  
+  const totalMonths = (endUTC.getUTCFullYear() - start.getUTCFullYear()) * 12 + (endUTC.getUTCMonth() - start.getUTCMonth());
   const years = Math.max(0, Math.floor(totalMonths / 12));
   const months = Math.max(0, totalMonths % 12);
   return { years, months };
