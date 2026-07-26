@@ -1,27 +1,5 @@
 import { NextResponse } from 'next/server';
-import { calculateServiceInfo, ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
-
-function calculateYearsOfService(hireDate: string) {
-  if (!hireDate || typeof hireDate !== 'string') {
-    return { years: 0, months: 0 };
-  }
-  
-  // Handle both "2020-01-01" and "2020-01-01T00:00:00.000Z" formats
-  let dateStr = hireDate.includes('T') ? hireDate : `${hireDate}T00:00:00Z`;
-  const start = new Date(dateStr);
-  if (isNaN(start.getTime())) {
-    return { years: 0, months: 0 };
-  }
-
-  // Use UTC for current date
-  const now = new Date();
-  const endUTC = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  
-  const totalMonths = (endUTC.getUTCFullYear() - start.getUTCFullYear()) * 12 + (endUTC.getUTCMonth() - start.getUTCMonth());
-  const years = Math.max(0, Math.floor(totalMonths / 12));
-  const months = Math.max(0, totalMonths % 12);
-  return { years, months };
-}
+import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -30,51 +8,49 @@ export async function GET() {
     }
 
     await ensureDatabaseSchema();
-    const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
     const currentYear = new Date().getFullYear();
 
-    for (const user of usersResult.rows) {
+    // 1. 모든 직원 조회
+    const usersResult = await query(`SELECT * FROM users ORDER BY name ASC`);
+    const users = usersResult.rows;
+
+    const usersWithLeave = [];
+
+    for (const user of users) {
       try {
-        await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+        // 2. 각 직원별로 해당 연도(currentYear)의 연차 데이터 생성/조회
+        const leaveGrant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+
+        // 3. 사용자 정보와 연차 정보를 합쳐서 반환
+        usersWithLeave.push({
+          ...user,
+          statutory_days: leaveGrant.statutory_days,
+          bonus_days: leaveGrant.bonus_days,
+          total_days: leaveGrant.total_days,
+          used_days: leaveGrant.used_days,
+          pending_days: leaveGrant.pending_days,
+          remaining_days: leaveGrant.remaining_days,
+          calculation_note: leaveGrant.calculation_note,
+        });
       } catch (err: any) {
         console.error(`Failed to ensure leave grant for user ${user.id}:`, err.message);
+        // 오류 발생 시 기본값으로 추가
+        usersWithLeave.push({
+          ...user,
+          statutory_days: 0,
+          bonus_days: 0,
+          total_days: 0,
+          used_days: 0,
+          pending_days: 0,
+          remaining_days: 0,
+          calculation_note: 'Error calculating leave',
+        });
       }
     }
 
-    const grantsResult = await query(`SELECT * FROM leave_grants WHERE year = $1 ORDER BY user_id ASC`, [currentYear]);
-
-    const grantsByUser = new Map<string, any[]>();
-    for (const grant of grantsResult.rows) {
-      const list = grantsByUser.get(grant.user_id) || [];
-      list.push(grant);
-      grantsByUser.set(grant.user_id, list);
-    }
-
-    const users = usersResult.rows.map((user: any) => {
-      const serviceInfo = calculateServiceInfo(user.hire_date);
-      const { years, months } = calculateYearsOfService(user.hire_date);
-      
-      const grants = grantsByUser.get(user.id) || [];
-      const latestGrant = grants[grants.length - 1] || null;
-      const usedDays = Number(latestGrant?.used_days ?? 0);
-      const pendingDays = Number(latestGrant?.pending_days ?? 0);
-
-      return {
-        ...user,
-        statutory_days: serviceInfo.statutoryDays,
-        bonus_days: 0,
-        total_days: serviceInfo.statutoryDays,
-        used_days: usedDays,
-        pending_days: pendingDays,
-        remaining_days: Math.max(0, serviceInfo.statutoryDays - usedDays - pendingDays),
-        calculation_note: `${serviceInfo.years}년 ${serviceInfo.months}개월 근속 → ${serviceInfo.statutoryDays}일`,
-        years_of_service: years,
-        months_of_service: months,
-      };
-    });
-
-    return NextResponse.json(users);
+    return NextResponse.json(usersWithLeave);
   } catch (error: any) {
+    console.error('Failed to fetch users with leave:', error);
     return NextResponse.json({ error: error.message || '사용자 조회 실패' }, { status: 500 });
   }
 }
