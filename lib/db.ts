@@ -54,12 +54,12 @@ export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date
   if (completedMonths < 1) {
     statutoryDays = 0;
   } else if (completedMonths < 12) {
+    // 1년 미만: 월 1일씩 (최대 11일)
     statutoryDays = Math.min(11, completedMonths);
-  } else if (years < 3) {
-    statutoryDays = 15;
   } else {
-    const additional = Math.floor((years - 3) / 2);
-    statutoryDays = Math.min(25, 15 + additional);
+    // 1년 이상: 15일 + (years - 1) / 2 추가 (최대 25일)
+    const extra = Math.floor((years - 1) / 2);
+    statutoryDays = Math.min(25, 15 + extra);
   }
 
   return { years, months, statutoryDays };
