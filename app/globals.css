@@ -2,11 +2,52 @@
 
 :root {
   color-scheme: light;
+  --bg-page: #f4f6ef;
+  --surface: #ffffff;
+  --surface-muted: #edf3e7;
+  --surface-strong: #d1dbb8;
+  --primary: #5c784f;
+  --primary-strong: #47603c;
+  --text-base: #2d4234;
+  --text-muted: #566d50;
+  --border: #ccd7b6;
 }
 
 body {
   margin: 0;
-  background-color: #fdfcf8;
-  color: #344e41;
+  background-color: var(--bg-page);
+  color: var(--text-base);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Color palette refinements for Tailwind arbitrary classes */
+[class*="bg-[#F1F3E9]"] {
+  background-color: var(--surface-muted) !important;
+}
+[class*="bg-[#E9EDC9]"] {
+  background-color: var(--surface-strong) !important;
+}
+[class*="bg-[#FDFCF8]"] {
+  background-color: var(--bg-page) !important;
+}
+[class*="border-[#E9EDC9]"] {
+  border-color: var(--border) !important;
+}
+[class*="text-[#A3B18A]"] {
+  color: var(--text-muted) !important;
+}
+[class*="text-[#718355]"] {
+  color: var(--primary) !important;
+}
+[class*="bg-[#718355]"] {
+  background-color: var(--primary) !important;
+}
+[class*="hover:bg-[#F1F3E9]"]:hover {
+  background-color: var(--surface-muted) !important;
+}
+[class*="hover:text-[#A3B18A]"]:hover {
+  color: var(--text-muted) !important;
+}
+[class*="hover:text-[#718355]"]:hover {
+  color: var(--primary) !important;
 }
