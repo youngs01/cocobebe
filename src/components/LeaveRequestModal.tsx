@@ -119,27 +119,27 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200 overflow-auto">
-      <div className="bg-white rounded-2xl shadow-xl border border-[#E9EDC9] w-full max-w-lg max-h-[90vh] overflow-auto">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-200 overflow-auto">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl border border-[#E9EDC9] w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-auto">
         
         {/* Header */}
-        <div className="bg-[#F1F3E9] px-6 py-4 border-b border-[#E9EDC9] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#718355] text-white flex items-center justify-center font-bold">
-              <Calendar className="w-4 h-4" />
+        <div className="bg-[#F1F3E9] px-4 sm:px-6 py-3 sm:py-4 border-b border-[#E9EDC9] flex items-center justify-between">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#718355] text-white flex items-center justify-center font-bold text-xs shrink-0">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-[#344E41]">어린이집 연차 / 휴가 신청서</h3>
-              <p className="text-xs text-[#718355] font-medium">{currentUser.name} 교사 ({currentUser.department})</p>
+            <div className="min-w-0">
+              <h3 className="text-xs sm:text-base font-bold text-[#344E41] truncate">연차/휴가 신청</h3>
+              <p className="text-[9px] sm:text-xs text-[#718355] font-medium truncate">{currentUser.name} ({currentUser.department})</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-[#A3B18A] hover:text-[#344E41] p-1 rounded-lg">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-[#A3B18A] hover:text-[#344E41] p-1 rounded-lg shrink-0">
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-3 sm:space-y-4">
 
           {/* Mini calendar for teachers to view public/substitute holidays */}
           <div className="bg-white rounded-xl border border-[#E9EDC9] p-3">

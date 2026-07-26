@@ -75,45 +75,45 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       
       {/* Header Info Banner */}
-      <div className="bg-[#718355] rounded-2xl p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-[#E9EDC9]" />
-            <h2 className="text-lg font-bold">어린이집 교사 연차 결재 & 승인 관리</h2>
+      <div className="bg-[#718355] rounded-xl sm:rounded-2xl p-3 sm:p-5 text-white shadow-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <ShieldCheck className="w-5 h-5 sm:w-6 sm:h-6 text-[#E9EDC9] shrink-0" />
+            <h2 className="text-sm sm:text-lg font-bold truncate">연차 결재 스판위</h2>
           </div>
-          <p className="text-xs text-[#E9EDC9] mt-1">
-            원장({currentUser.role === 'director' ? currentUser.name : '박윤희'}) 및 관리자 전용 • 승인 취소 시 남은 연차가 자동 복원됩니다.
+          <p className="text-[10px] sm:text-xs text-[#E9EDC9] mt-0.5 sm:mt-1">
+            중로딩스({currentUser.role === 'director' ? currentUser.name : '박윤희'}) & 관리자 전용
           </p>
         </div>
 
         {/* Quick Counters */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="bg-white/10 backdrop-blur-xs rounded-xl px-4 py-2 border border-white/20 text-center">
-            <span className="text-xs text-[#E9EDC9] block font-medium">승인 대기</span>
-            <span className="text-xl font-black text-amber-200">{pendingCount}건</span>
+        <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+          <div className="bg-white/10 backdrop-blur-xs rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 border border-white/20 text-center">
+            <span className="text-[9px] sm:text-xs text-[#E9EDC9] block font-medium">대기</span>
+            <span className="text-lg sm:text-xl font-black text-amber-200">{pendingCount}</span>
           </div>
-          <div className="bg-white/10 backdrop-blur-xs rounded-xl px-4 py-2 border border-white/20 text-center">
-            <span className="text-xs text-[#E9EDC9] block font-medium">승인 완료</span>
-            <span className="text-xl font-black text-emerald-200">{approvedCount}건</span>
+          <div className="bg-white/10 backdrop-blur-xs rounded-lg sm:rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 border border-white/20 text-center">
+            <span className="text-[9px] sm:text-xs text-[#E9EDC9] block font-medium">승인</span>
+            <span className="text-lg sm:text-xl font-black text-emerald-200">{approvedCount}</span>
           </div>
         </div>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-[#E9EDC9] pb-2 text-xs">
+      <div className="flex items-center gap-1 sm:gap-2 border-b border-[#E9EDC9] pb-1.5 sm:pb-2 text-[10px] sm:text-xs overflow-x-auto">
         {[
           { id: 'all', label: `전체 (${leaveRequests.length})` },
-          { id: 'pending', label: `승인 대기중 (${pendingCount})` },
-          { id: 'approved', label: `승인 완료 (${approvedCount})` },
-          { id: 'processed', label: '취소/반려 이력' },
+          { id: 'pending', label: `대기 (${pendingCount})` },
+          { id: 'approved', label: `승인 (${approvedCount})` },
+          { id: 'processed', label: '기타' },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setFilter(tab.id as any)}
-            className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg font-semibold transition-all cursor-pointer whitespace-nowrap ${
               filter === tab.id
                 ? 'bg-[#718355] text-white shadow-xs'
                 : 'bg-[#F1F3E9] text-[#344E41] hover:bg-[#E9EDC9]'
@@ -125,96 +125,96 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
       </div>
 
       {/* Requests List */}
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {filteredRequests.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E9EDC9] p-8 text-center text-[#A3B18A] text-xs">
-            해당하는 연차 결재 요청이 없습니다.
+          <div className="bg-white rounded-xl sm:rounded-2xl border border-[#E9EDC9] p-6 sm:p-8 text-center text-[#A3B18A] text-[11px] sm:text-xs">
+            해당 요청이 없습니다.
           </div>
         ) : (
           filteredRequests.map((req) => (
             <div
               key={req.id}
-              className={`bg-white rounded-2xl border transition-all p-4 space-y-3 shadow-xs ${
+              className={`bg-white rounded-lg sm:rounded-2xl border transition-all p-3 sm:p-4 space-y-2 sm:space-y-3 shadow-xs ${
                 req.status === 'pending'
                   ? 'border-[#718355] ring-2 ring-[#718355]/20 bg-[#F1F3E9]/30'
                   : 'border-[#E9EDC9]'
               }`}
             >
               {/* Row Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-full bg-[#F1F3E9] border border-[#E9EDC9] flex items-center justify-center text-[#718355] font-bold text-xs shrink-0">
-                    <UserCheck className="w-4 h-4 text-[#718355]" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                  <div className="w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-[#F1F3E9] border border-[#E9EDC9] flex items-center justify-center text-[#718355] font-bold text-xs shrink-0">
+                    <UserCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#344E41] text-sm">{req.user_name} 교사</span>
-                      <span className="text-xs text-[#718355] bg-[#F1F3E9] px-2 py-0.5 rounded">{req.department}</span>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                      <span className="font-bold text-[#344E41] text-xs sm:text-sm truncate">{req.user_name} 교사</span>
+                      <span className="text-[10px] sm:text-xs text-[#718355] bg-[#F1F3E9] px-1.5 py-0.5 rounded shrink-0">{req.department}</span>
                       {getLeaveTypeBadge(req.leave_type)}
                     </div>
-                    <span className="text-[11px] text-[#A3B18A]">신청일: {new Date(req.created_at).toLocaleDateString('ko-KR')}</span>
+                    <span className="text-[9px] sm:text-[11px] text-[#A3B18A]">신청일: {new Date(req.created_at).toLocaleDateString('ko-KR')}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-auto">
+                <div className="flex items-center gap-1 sm:gap-2 self-start sm:self-auto">
                   {getStatusBadge(req.status)}
                 </div>
               </div>
 
               {/* Leave Details Box */}
-              <div className="bg-[#FDFCF8] rounded-xl p-3 border border-[#E9EDC9] text-xs grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div className="bg-[#FDFCF8] rounded-lg sm:rounded-xl p-2 sm:p-3 border border-[#E9EDC9] text-[10px] sm:text-xs grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-2">
                 <div>
-                  <span className="text-[#A3B18A] text-[11px] block">신청 기간</span>
-                  <span className="font-bold text-[#344E41]">{formatDate(req.start_date)} ~ {formatDate(req.end_date)}</span>
+                  <span className="text-[#A3B18A] text-[9px] sm:text-[10px] block">신청 기간</span>
+                  <span className="font-bold text-[#344E41] text-[10px] sm:text-xs break-all">{formatDate(req.start_date)} ~ {formatDate(req.end_date)}</span>
                 </div>
                 <div>
-                  <span className="text-[#A3B18A] text-[11px] block">차감 예정 일수</span>
-                  <span className="font-black text-[#718355]">{req.requested_days}일</span>
+                  <span className="text-[#A3B18A] text-[9px] sm:text-[10px] block">차감 일수</span>
+                  <span className="font-black text-[#718355] text-[10px] sm:text-xs">{req.requested_days}일</span>
                 </div>
                 <div>
-                  <span className="text-[#A3B18A] text-[11px] block">사유</span>
-                  <span className="text-[#344E41]">{req.reason || '사유 미기재'}</span>
+                  <span className="text-[#A3B18A] text-[9px] sm:text-[10px] block">사유</span>
+                  <span className="text-[#344E41] text-[9px] sm:text-xs truncate">{req.reason || '미기재'}</span>
                 </div>
               </div>
 
               {/* Processing log if approved/rejected/cancelled */}
               {req.processed_by && (
-                <div className="text-[11px] text-[#718355] bg-[#F1F3E9] rounded-lg px-3 py-1.5 flex items-center justify-between">
-                  <span>처리자: <strong>{req.processed_by}</strong> ({new Date(req.processed_at || '').toLocaleString('ko-KR')})</span>
+                <div className="text-[9px] sm:text-[11px] text-[#718355] bg-[#F1F3E9] rounded-lg px-2 sm:px-3 py-1 sm:py-1.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2">
+                  <span className="truncate">처리: <strong>{req.processed_by}</strong> ({new Date(req.processed_at || '').toLocaleDateString('ko-KR')})</span>
                   {req.rejection_reason && (
-                    <span className="text-rose-600 font-semibold">사유: {req.rejection_reason}</span>
+                    <span className="text-rose-600 font-semibold truncate text-[8px] sm:text-[9px]">사유: {req.rejection_reason}</span>
                   )}
                 </div>
               )}
 
               {/* Action Buttons for Manager / Director */}
-              <div className="pt-2 border-t border-[#E9EDC9] flex flex-wrap items-center justify-end gap-2">
+              <div className="pt-1.5 sm:pt-2 border-t border-[#E9EDC9] flex flex-col sm:flex-row sm:items-center sm:justify-end gap-1.5 sm:gap-2">
                 
                 {/* Pending State Actions */}
                 {req.status === 'pending' && (
                   <>
                     {rejectingId === req.id ? (
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <div className="flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2 w-full">
                         <input
                           type="text"
-                          placeholder="반려 사유 입력"
+                          placeholder="사유 입력"
                           value={rejectionReason}
                           onChange={(e) => setRejectionReason(e.target.value)}
-                          className="text-xs border border-rose-300 rounded-lg px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500 grow"
+                          className="text-[10px] sm:text-xs border border-rose-300 rounded-lg px-2 sm:px-2.5 py-1.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-rose-500 grow"
                         />
                         <button
                           onClick={() => handleConfirmReject(req.id)}
                           disabled={isProcessing}
-                          className="px-3 py-1.5 bg-rose-600 text-white font-bold rounded-lg text-xs hover:bg-rose-700 transition-colors cursor-pointer"
+                          className="px-2.5 sm:px-3 py-1.5 bg-rose-600 text-white font-bold rounded-lg text-[10px] sm:text-xs hover:bg-rose-700 transition-colors cursor-pointer shrink-0"
                         >
-                          반려 확정
+                          반려
                         </button>
                         <button
                           onClick={() => {
                             setRejectingId(null);
                             setRejectionReason('');
                           }}
-                          className="px-2.5 py-1.5 border border-slate-300 text-slate-600 rounded-lg text-xs hover:bg-slate-100"
+                          className="px-2.5 py-1.5 border border-slate-300 text-slate-600 rounded-lg text-[10px] sm:text-xs hover:bg-slate-100 shrink-0"
                         >
                           취소
                         </button>
@@ -224,18 +224,18 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
                         <button
                           onClick={() => setRejectingId(req.id)}
                           disabled={isProcessing}
-                          className="px-3.5 py-1.5 border border-rose-200 bg-rose-50 text-rose-700 font-bold rounded-xl text-xs hover:bg-rose-100 transition-colors flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 sm:px-3.5 py-1.5 border border-rose-200 bg-rose-50 text-rose-700 font-bold rounded-lg sm:rounded-xl text-[10px] sm:text-xs hover:bg-rose-100 transition-colors flex items-center gap-1 cursor-pointer"
                         >
-                          <XCircle className="w-3.5 h-3.5" />
-                          반려
+                          <XCircle className="w-3 h-3" />
+                          <span className="hidden sm:inline">반려</span>
                         </button>
                         <button
                           onClick={() => onApprove(req.id)}
                           disabled={isProcessing}
-                          className="px-4 py-1.5 bg-[#718355] hover:bg-[#5f6f45] text-white font-bold rounded-xl text-xs transition-colors shadow-xs flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 sm:px-4 py-1.5 bg-[#718355] hover:bg-[#5f6f45] text-white font-bold rounded-lg sm:rounded-xl text-[10px] sm:text-xs transition-colors shadow-xs flex items-center gap-1 cursor-pointer grow sm:grow-0"
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          연차 승인 및 차감
+                          <CheckCircle2 className="w-3 h-3" />
+                          <span>승인</span>
                         </button>
                       </>
                     )}
@@ -246,15 +246,16 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
                 {req.status === 'approved' && (
                   <button
                     onClick={() => {
-                      if (confirm(`'${req.user_name}' 교사의 승인되었던 연차(${req.requested_days}일)를 취소하시겠습니까?\n취소 시 남은 연차에 차감되었던 일수가 자동으로 복원됩니다.`)) {
+                      if (confirm(`'${req.user_name}' 교사의 승인(${req.requested_days}일)을 취소하시겠습니까?`)) {
                         onCancelApproved(req.id);
                       }
                     }}
                     disabled={isProcessing}
-                    className="px-3.5 py-1.5 border border-[#E9EDC9] bg-[#F1F3E9] text-[#344E41] font-bold rounded-xl text-xs hover:bg-[#E9EDC9] transition-colors flex items-center gap-1.5 cursor-pointer"
+                    className="px-2.5 sm:px-3.5 py-1.5 border border-[#E9EDC9] bg-[#F1F3E9] text-[#344E41] font-bold rounded-lg sm:rounded-xl text-[10px] sm:text-xs hover:bg-[#E9EDC9] transition-colors flex items-center gap-1 cursor-pointer w-full sm:w-auto justify-center"
                   >
-                    <RotateCcw className="w-3.5 h-3.5 text-[#718355]" />
-                    승인 취소 (남은 연차 복원)
+                    <RotateCcw className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#718355]" />
+                    <span className="hidden sm:inline">승인 취소 (복원)</span>
+                    <span className="sm:hidden">취소</span>
                   </button>
                 )}
 

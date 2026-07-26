@@ -45,26 +45,26 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onLoginSuccess, dbConnecte
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-[#FDFCF8] flex items-center justify-center p-3 sm:p-4">
+      <div className="w-full max-w-md space-y-4 sm:space-y-6">
         
         {/* Logo & Header Header */}
         <div className="text-center space-y-2">
-          <div className="w-16 h-16 rounded-3xl bg-[#718355] text-white flex items-center justify-center mx-auto shadow-md shadow-[#718355]/20">
-            <Building2 className="w-8 h-8" />
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-3xl bg-[#718355] text-white flex items-center justify-center mx-auto shadow-md shadow-[#718355]/20">
+            <Building2 className="w-7 h-7 sm:w-8 sm:h-8" />
           </div>
-          <h1 className="text-2xl font-black text-[#344E41] tracking-tight">코코베베 어린이집</h1>
-          <p className="text-xs text-[#718355] font-semibold">교직원 근태 & 법정연차 스마트 통합관리 시스템</p>
+          <h1 className="text-xl sm:text-2xl font-black text-[#344E41] tracking-tight">코코베베 어린이집</h1>
+          <p className="text-[10px] sm:text-xs text-[#718355] font-semibold">근로기준법 준수 법정연차 관리 시스템</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white rounded-3xl border border-[#E9EDC9] shadow-md p-6 sm:p-8 space-y-6">
-          <div className="flex items-center justify-between border-b border-[#E9EDC9] pb-4">
-            <h2 className="text-base font-bold text-[#344E41] flex items-center gap-2">
-              <Lock className="w-4 h-4 text-[#718355]" />
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-[#E9EDC9] shadow-md p-4 sm:p-8 space-y-5 sm:space-y-6">
+          <div className="flex items-center justify-between border-b border-[#E9EDC9] pb-3 sm:pb-4">
+            <h2 className="text-sm sm:text-base font-bold text-[#344E41] flex items-center gap-2">
+              <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#718355]" />
               시스템 로그인
             </h2>
-            <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
               dbConnected ? 'bg-[#F1F3E9] text-[#718355] border border-[#E9EDC9]' : 'bg-amber-50 text-amber-800'
             }`}>
               <span className={`w-1.5 h-1.5 rounded-full ${dbConnected ? 'bg-[#718355]' : 'bg-amber-500'}`} />
