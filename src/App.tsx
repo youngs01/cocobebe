@@ -504,7 +504,9 @@ export default function App() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-bold text-[#344E41]">{currentUser.name} 교사</h2>
+                        <h2 className="text-xl font-bold text-[#344E41]">
+                          {currentUser.name} {currentUser.position || (currentUser.role === 'director' ? '원장' : '교사')}
+                        </h2>
                         <span className="bg-[#F1F3E9] text-[#718355] text-xs px-2.5 py-0.5 rounded-full font-semibold border border-[#E9EDC9]">
                           {currentUser.department}
                         </span>
