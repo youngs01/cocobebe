@@ -19,6 +19,12 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = ({
   const pendingRequests = leaveRequests.filter((r) => r.status === 'pending');
   const approvedRequests = leaveRequests.filter((r) => r.status === 'approved');
 
+  const formatDate = (d?: string | null) => {
+    if (!d) return '';
+    if (typeof d === 'string') return d.split('T')[0];
+    try { return new Date(d as any).toISOString().split('T')[0]; } catch { return '' }
+  };
+
   // Calculate total granted statutory days & used days
   const totalStatutoryDays = teachers.reduce((acc, curr) => acc + curr.total_days, 0);
   const totalUsedDays = teachers.reduce((acc, curr) => acc + curr.used_days, 0);
@@ -135,7 +141,7 @@ export const DirectorDashboardView: React.FC<DirectorDashboardViewProps> = ({
               <div key={req.id} className="bg-[#F1F3E9] border border-[#E9EDC9] rounded-xl p-3 flex items-center justify-between text-xs">
                 <div>
                   <strong className="text-[#344E41]">{req.user_name} 교사 ({req.department})</strong>
-                  <span className="text-[#718355] block text-[11px]">{req.start_date} ~ {req.end_date} (차감: {req.requested_days}일)</span>
+                  <span className="text-[#718355] block text-[11px]">{formatDate(req.start_date)} ~ {formatDate(req.end_date)} (차감: {req.requested_days}일)</span>
                 </div>
                 <button
                   onClick={onNavigateToApproval}

@@ -30,6 +30,12 @@ export default function App() {
   const [isLaborModalOpen, setIsLaborModalOpen] = useState<boolean>(false);
   const [isRequestModalOpen, setIsRequestModalOpen] = useState<boolean>(false);
 
+  const formatDate = (d?: string | null) => {
+    if (!d) return '';
+    if (typeof d === 'string') return d.split('T')[0];
+    try { return new Date(d as any).toISOString().split('T')[0]; } catch { return '' }
+  };
+
   // Fetch all data from Express PostgreSQL Backend
   const fetchData = async () => {
     try {
@@ -615,7 +621,7 @@ export default function App() {
                           <div key={req.id} className="bg-[#FDFCF8] rounded-2xl border border-[#E9EDC9] p-4 space-y-2 text-xs">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2">
-                                <span className="font-bold text-[#344E41] text-sm">{req.start_date} ~ {req.end_date}</span>
+                                <span className="font-bold text-[#344E41] text-sm">{formatDate(req.start_date)} ~ {formatDate(req.end_date)}</span>
                                 <span className="bg-[#E9EDC9] text-[#344E41] px-2 py-0.5 rounded font-bold">{req.requested_days}일 차감</span>
                               </div>
                               <span className={`px-2.5 py-1 rounded-full font-bold text-xs ${

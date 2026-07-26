@@ -33,6 +33,12 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
   const pendingCount = leaveRequests.filter((r) => r.status === 'pending').length;
   const approvedCount = leaveRequests.filter((r) => r.status === 'approved').length;
 
+  const formatDate = (d?: string | null) => {
+    if (!d) return '';
+    if (typeof d === 'string') return d.split('T')[0];
+    try { return new Date(d as any).toISOString().split('T')[0]; } catch { return '' }
+  };
+
   const handleConfirmReject = async (id: string) => {
     if (!rejectionReason.trim()) {
       alert('반려 사유를 입력해 주세요.');
@@ -159,7 +165,7 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
               <div className="bg-[#FDFCF8] rounded-xl p-3 border border-[#E9EDC9] text-xs grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
                   <span className="text-[#A3B18A] text-[11px] block">신청 기간</span>
-                  <span className="font-bold text-[#344E41]">{req.start_date} ~ {req.end_date}</span>
+                  <span className="font-bold text-[#344E41]">{formatDate(req.start_date)} ~ {formatDate(req.end_date)}</span>
                 </div>
                 <div>
                   <span className="text-[#A3B18A] text-[11px] block">차감 예정 일수</span>
