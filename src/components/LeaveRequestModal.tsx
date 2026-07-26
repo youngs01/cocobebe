@@ -39,6 +39,8 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
   const prevMiniMonth = () => setMiniMonth(subMonths(miniMonth, 1));
   const nextMiniMonth = () => setMiniMonth(addMonths(miniMonth, 1));
 
+  const normalizedHolidays = holidays.map(h => ({ ...h, date: h.date.includes('T') ? h.date.split('T')[0] : h.date }));
+
   // Calculate working days excluding weekends and red-day public holidays
   useEffect(() => {
     if (!startDate || !endDate) return;
@@ -65,7 +67,7 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
 
       days.forEach((day) => {
         const dateStr = format(day, 'yyyy-MM-dd');
-        const holiday = holidays.find((h) => h.date === dateStr && h.is_public);
+        const holiday = normalizedHolidays.find((h) => h.date === dateStr && h.is_public);
         const weekend = isWeekend(day);
 
         if (weekend) {
@@ -163,7 +165,6 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                 const start = startOfWeek(monthStart, { weekStartsOn: 0 });
                 const end = endOfWeek(monthEnd, { weekStartsOn: 0 });
                 const days = eachDayOfInterval({ start, end });
-                const normalizedHolidays = holidays.map(h => ({ ...h, date: h.date.includes('T') ? h.date.split('T')[0] : h.date }));
 
                 return days.map((day) => {
                   const dStr = format(day, 'yyyy-MM-dd');
