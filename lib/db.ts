@@ -116,7 +116,7 @@ export function calculateServiceInfo(hireDate: string | Date | null | undefined,
 
 export async function ensureLeaveGrantForUser(userId: string, hireDate: string, year: number) {
   try {
-    const serviceInfo = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
+    const serviceInfo = calculateServiceInfo(hireDate, new Date());
     const { statutoryDays, years, months } = serviceInfo;
 
     const bonusDays = 0;
