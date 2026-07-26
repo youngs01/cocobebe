@@ -37,12 +37,12 @@ export async function GET() {
         // 3. 사용자 정보와 연차 정보를 합쳐서 반환
         usersWithLeave.push({
           ...user,
-          statutory_days: leaveGrant.statutory_days,
-          bonus_days: leaveGrant.bonus_days,
-          total_days: leaveGrant.total_days,
-          used_days: leaveGrant.used_days,
-          pending_days: leaveGrant.pending_days,
-          remaining_days: leaveGrant.remaining_days,
+          statutory_days: Number(leaveGrant.statutory_days ?? 0),
+          bonus_days: Number(leaveGrant.bonus_days ?? 0),
+          total_days: Number(leaveGrant.total_days ?? 0),
+          used_days: Number(leaveGrant.used_days ?? 0),
+          pending_days: Number(leaveGrant.pending_days ?? 0),
+          remaining_days: Number(leaveGrant.remaining_days ?? 0),
           calculation_note: leaveGrant.calculation_note,
         });
       } catch (err: any) {

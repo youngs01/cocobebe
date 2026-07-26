@@ -28,78 +28,89 @@ function getCurrentYear() {
   return new Date().getFullYear();
 }
 
+function normalizeDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  let normalized = trimmed;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    normalized = `${normalized}T00:00:00.000Z`;
+  } else if (/^\d{4}-\d{2}-\d{2}T/.test(normalized) && !/[zZ]$/.test(normalized)) {
+    normalized = `${normalized}Z`;
+  }
+
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 // 간단하고 정확한 연차 계산
-function calcAnnualLeave(hireDate: string | Date, refDate: Date = new Date()): number {
-  const hire = new Date(hireDate);
-  if (isNaN(hire.getTime())) {
-    console.log('[DEBUG] Invalid hire date:', hireDate);
+function calcAnnualLeave(hireDate: string | Date | null | undefined, refDate: Date = new Date()): number {
+  const hire = normalizeDate(hireDate);
+  const ref = normalizeDate(refDate);
+
+  if (!hire || !ref) {
     return 0;
   }
 
-  const ref = new Date(refDate);
-  let diffYears = ref.getFullYear() - hire.getFullYear();
-  const monthDiff = ref.getMonth() - hire.getMonth();
-  const dayDiff = ref.getDate() - hire.getDate();
+  const startYear = hire.getUTCFullYear();
+  const startMonth = hire.getUTCMonth();
+  const startDay = hire.getUTCDate();
+  const refYear = ref.getUTCFullYear();
+  const refMonth = ref.getUTCMonth();
+  const refDay = ref.getUTCDate();
 
-  // 아직 생일이 안 지났으면 1년을 빼기
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    diffYears--;
+  let totalMonths = (refYear - startYear) * 12 + (refMonth - startMonth);
+  if (refDay < startDay) {
+    totalMonths -= 1;
   }
 
-  if (diffYears < 1) {
-    // 1년 미만: 월 1일씩 (최대 11일)
-    let months = (ref.getFullYear() - hire.getFullYear()) * 12 + (ref.getMonth() - hire.getMonth());
-    if (dayDiff < 0) months--;
-    const result = Math.max(0, Math.min(11, months));
-    console.log('[DEBUG] calcAnnualLeave < 1yr:', { diffYears, months, result });
-    return result;
-  } else {
-    // 1년 이상: 15일 + (diffYears - 1) / 2 추가 (최대 25일)
-    const extra = Math.floor((diffYears - 1) / 2);
-    const result = Math.min(25, 15 + extra);
-    console.log('[DEBUG] calcAnnualLeave >= 1yr:', { diffYears, extra, result });
-    return result;
+  totalMonths = Math.max(0, totalMonths);
+
+  if (totalMonths < 12) {
+    return Math.min(11, totalMonths);
   }
+
+  const years = Math.floor(totalMonths / 12);
+  const extra = Math.floor((years - 1) / 2);
+  return Math.min(25, 15 + extra);
 }
 
-export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date()) {
-  if (!hireDate || typeof hireDate !== 'string') {
+export function calculateServiceInfo(hireDate: string | Date | null | undefined, asOfDate: Date = new Date()) {
+  const hire = normalizeDate(hireDate);
+  const ref = normalizeDate(asOfDate);
+
+  if (!hire || !ref) {
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
-  const hire = new Date(hireDate);
-  if (isNaN(hire.getTime())) {
-    console.log('[DEBUG] calculateServiceInfo: Invalid date format', hireDate);
-    return { years: 0, months: 0, statutoryDays: 0 };
+  const startYear = hire.getUTCFullYear();
+  const startMonth = hire.getUTCMonth();
+  const startDay = hire.getUTCDate();
+  const refYear = ref.getUTCFullYear();
+  const refMonth = ref.getUTCMonth();
+  const refDay = ref.getUTCDate();
+
+  let totalMonths = (refYear - startYear) * 12 + (refMonth - startMonth);
+  if (refDay < startDay) {
+    totalMonths -= 1;
   }
 
-  const ref = new Date(asOfDate);
-  let diffYears = ref.getFullYear() - hire.getFullYear();
-  const monthDiff = ref.getMonth() - hire.getMonth();
-  const dayDiff = ref.getDate() - hire.getDate();
-
-  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
-    diffYears--;
-  }
-
-  const months = (ref.getFullYear() - hire.getFullYear()) * 12 + (ref.getMonth() - hire.getMonth());
-  const adjustedMonths = dayDiff < 0 ? months - 1 : months;
-  const adjustedMonthsOfService = Math.max(0, adjustedMonths % 12);
-
-  const statutoryDays = calcAnnualLeave(hireDate, asOfDate);
-
-  console.log('[DEBUG] calculateServiceInfo result:', {
-    hireDate,
-    asOfDate: ref.toDateString(),
-    years: Math.max(0, diffYears),
-    months: adjustedMonthsOfService,
-    statutoryDays,
-  });
+  totalMonths = Math.max(0, totalMonths);
+  const years = Math.floor(totalMonths / 12);
+  const months = totalMonths % 12;
 
   return {
-    years: Math.max(0, diffYears),
-    months: adjustedMonthsOfService,
-    statutoryDays,
+    years,
+    months,
+    statutoryDays: calcAnnualLeave(hireDate, ref),
   };
 }
 
@@ -107,9 +118,7 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
   try {
     const serviceInfo = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
     const { statutoryDays, years, months } = serviceInfo;
-    
-    console.log(`[DEBUG] ensureLeaveGrantForUser for ${userId}:`, { statutoryDays, years, months, hireDate });
-    
+
     const bonusDays = 0;
     const totalDays = Math.max(0, statutoryDays + bonusDays);
     const note = `${year}년 기준 법정연차 ${statutoryDays}일 (근속 ${years}년 ${months}개월)`;
@@ -120,14 +129,6 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
       const usedDays = Number(current.used_days || 0);
       const pendingDays = Number(current.pending_days || 0);
       const remainingDays = Math.max(0, totalDays - usedDays - pendingDays);
-
-      console.log(`[DEBUG] Updating existing grant for ${userId}:`, {
-        statutory_days: statutoryDays,
-        total_days: totalDays,
-        used_days: usedDays,
-        pending_days: pendingDays,
-        remaining_days: remainingDays,
-      });
 
       await query(
         `UPDATE leave_grants
@@ -147,12 +148,6 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
     }
 
     const remainingDays = totalDays;
-
-    console.log(`[DEBUG] Inserting new grant for ${userId}:`, {
-      statutory_days: statutoryDays,
-      total_days: totalDays,
-      remaining_days: remainingDays,
-    });
 
     await query(
       `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)
