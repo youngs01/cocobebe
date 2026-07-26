@@ -197,17 +197,37 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
                       key={dStr}
                       type="button"
                       onClick={() => {
-                        if (!startDate || (startDate && endDate)) {
+                        const s = startDate;
+                        const e = endDate;
+
+                        // No start defined (unlikely because we init), start single-day selection
+                        if (!s) {
                           setStartDate(dStr);
                           setEndDate(dStr);
-                        } else {
-                          if (dStr < startDate) {
-                            setEndDate(startDate);
+                          return;
+                        }
+
+                        // If an existing range is present (start !== end), start a new selection
+                        if (s && e && s !== e) {
+                          setStartDate(dStr);
+                          setEndDate(dStr);
+                          return;
+                        }
+
+                        // s exists and e exists and s === e -> extend to range
+                        if (s && e && s === e) {
+                          if (dStr < s) {
                             setStartDate(dStr);
+                            setEndDate(s);
                           } else {
                             setEndDate(dStr);
                           }
+                          return;
                         }
+
+                        // Fallback: set as single-day
+                        setStartDate(dStr);
+                        setEndDate(dStr);
                       }}
                       className={`min-h-[34px] p-1 rounded text-center text-left ${cls}`}
                     >
