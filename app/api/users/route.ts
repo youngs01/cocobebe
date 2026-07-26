@@ -20,6 +20,14 @@ export async function GET() {
       try {
         // 2. 각 직원별로 해당 연도(currentYear)의 연차 데이터 생성/조회
         const leaveGrant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
+        
+        console.log(`[DEBUG] User: ${user.name}, Leave Grant:`, {
+          statutory_days: leaveGrant.statutory_days,
+          total_days: leaveGrant.total_days,
+          used_days: leaveGrant.used_days,
+          pending_days: leaveGrant.pending_days,
+          remaining_days: leaveGrant.remaining_days,
+        });
 
         // 3. 사용자 정보와 연차 정보를 합쳐서 반환
         usersWithLeave.push({
@@ -34,6 +42,7 @@ export async function GET() {
         });
       } catch (err: any) {
         console.error(`Failed to ensure leave grant for user ${user.id}:`, err.message);
+        console.error(`Stack:`, err.stack);
         // 오류 발생 시 기본값으로 추가
         usersWithLeave.push({
           ...user,

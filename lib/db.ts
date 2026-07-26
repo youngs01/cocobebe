@@ -30,6 +30,7 @@ function getCurrentYear() {
 
 export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date()) {
   if (!hireDate || typeof hireDate !== 'string') {
+    console.log('[DEBUG] calculateServiceInfo: Invalid hireDate', hireDate);
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
@@ -37,11 +38,13 @@ export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date
   let dateStr = hireDate.includes('T') ? hireDate : `${hireDate}T00:00:00Z`;
   const start = new Date(dateStr);
   if (isNaN(start.getTime())) {
+    console.log('[DEBUG] calculateServiceInfo: Invalid start date', dateStr);
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
   const end = new Date(Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth(), asOfDate.getUTCDate()));
   if (isNaN(end.getTime())) {
+    console.log('[DEBUG] calculateServiceInfo: Invalid end date', asOfDate);
     return { years: 0, months: 0, statutoryDays: 0 };
   }
 
@@ -62,6 +65,16 @@ export function calculateServiceInfo(hireDate: string, asOfDate: Date = new Date
     statutoryDays = Math.min(25, 15 + extra);
   }
 
+  console.log('[DEBUG] calculateServiceInfo:', {
+    hireDate,
+    asOfDate: end.toISOString(),
+    totalMonths,
+    years,
+    months,
+    completedMonths,
+    statutoryDays,
+  });
+
   return { years, months, statutoryDays };
 }
 
@@ -69,6 +82,8 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
   try {
     const serviceInfo = calculateServiceInfo(hireDate, new Date(Date.UTC(year, 11, 31)));
     const { statutoryDays, years, months } = serviceInfo;
+    
+    console.log(`[DEBUG] ensureLeaveGrantForUser for ${userId}:`, { statutoryDays, years, months, hireDate });
     
     const bonusDays = 0;
     const totalDays = Math.max(0, statutoryDays + bonusDays);
@@ -80,6 +95,14 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
       const usedDays = Number(current.used_days || 0);
       const pendingDays = Number(current.pending_days || 0);
       const remainingDays = Math.max(0, totalDays - usedDays - pendingDays);
+
+      console.log(`[DEBUG] Updating existing grant for ${userId}:`, {
+        statutory_days: statutoryDays,
+        total_days: totalDays,
+        used_days: usedDays,
+        pending_days: pendingDays,
+        remaining_days: remainingDays,
+      });
 
       await query(
         `UPDATE leave_grants
@@ -99,6 +122,12 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
     }
 
     const remainingDays = totalDays;
+
+    console.log(`[DEBUG] Inserting new grant for ${userId}:`, {
+      statutory_days: statutoryDays,
+      total_days: totalDays,
+      remaining_days: remainingDays,
+    });
 
     await query(
       `INSERT INTO leave_grants (user_id, year, statutory_days, bonus_days, total_days, used_days, pending_days, remaining_days, calculation_note)
