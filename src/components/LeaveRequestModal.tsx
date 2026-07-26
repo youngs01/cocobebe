@@ -95,9 +95,9 @@ export const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({
       return;
     }
 
-    if (calculatedDays > currentUser.remaining_days && leaveType === 'annual') {
-      alert(`잔여 연차가 부족합니다. (신청일수: ${calculatedDays}일 / 잔여연차: ${currentUser.remaining_days}일)`);
-      return;
+    if (leaveType === 'annual' && calculatedDays > currentUser.remaining_days) {
+      const proceed = confirm(`잔여 연차가 부족합니다. (신청일수: ${calculatedDays}일 / 잔여연차: ${currentUser.remaining_days}일)\n초과 사용 시 잔여 연차가 음수로 기록됩니다. 계속 진행하시겠습니까?`);
+      if (!proceed) return;
     }
 
     try {

@@ -128,7 +128,8 @@ export async function ensureLeaveGrantForUser(userId: string, hireDate: string, 
       const current = existingGrant.rows[0];
       const usedDays = Number(current.used_days || 0);
       const pendingDays = Number(current.pending_days || 0);
-      const remainingDays = Math.max(0, totalDays - usedDays - pendingDays);
+      // Allow remaining days to be negative when usedDays exceed allocated totalDays
+      const remainingDays = totalDays - usedDays - pendingDays;
 
       await query(
         `UPDATE leave_grants
