@@ -456,17 +456,6 @@ export default function App() {
             </button>
           )}
 
-          <button
-            onClick={() => setActiveTab('calendar')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTab === 'calendar'
-                ? 'bg-[#718355] text-white shadow-xs'
-                : 'text-[#344E41]/80 hover:bg-[#F1F3E9]'
-            }`}
-          >
-            어린이집 달력 (빨간날 자동인식)
-          </button>
-
           {(currentRole === 'manager' || currentRole === 'director') && (
             <button
               onClick={() => setActiveTab('teachers')}
@@ -480,7 +469,7 @@ export default function App() {
             </button>
           )}
 
-          {currentRole === 'director' && (
+          {(currentRole === 'director' || currentRole === 'manager') && (
             <button
               onClick={() => setActiveTab('director_dashboard')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -489,7 +478,7 @@ export default function App() {
                   : 'text-[#344E41]/80 hover:bg-[#F1F3E9]'
               }`}
             >
-              원장 대시보드
+              {currentRole === 'director' ? '원장 대시보드' : '공휴일 관리'}
             </button>
           )}
 
