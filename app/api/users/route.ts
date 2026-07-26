@@ -3,38 +3,21 @@ import { ensureDatabaseSchema, ensureLeaveGrantForUser, query, calculateServiceI
 
 export async function GET() {
   try {
-    console.log('[API] GET /api/users - START');
-    
     if (!process.env.DATABASE_URL) {
-      console.log('[API] DATABASE_URL not set');
       return NextResponse.json({ error: 'DATABASE_URL이 설정되지 않았습니다.' }, { status: 500 });
     }
 
     await ensureDatabaseSchema();
-    const currentYear = new Date().getFullYear();
-    console.log('[API] Current year:', currentYear);
 
-    // 1. 삭제되지 않은 직원만 조회
     const usersResult = await query(`SELECT * FROM users WHERE status IS NULL OR status = 'active' ORDER BY name ASC`);
     const users = usersResult.rows;
-    console.log('[API] Total users:', users.length);
+    const currentYear = new Date().getFullYear();
 
     const usersWithLeave = [];
 
     for (const user of users) {
-      console.log(`[API] Processing user: ${user.name} (${user.id}), hire_date: ${user.hire_date}`);
       try {
-        // 2. 각 직원별로 해당 연도(currentYear)의 연차 데이터 생성/조회
         const leaveGrant = await ensureLeaveGrantForUser(user.id, user.hire_date, currentYear);
-        
-        console.log(`[API] Leave grant for ${user.name}:`, {
-          statutory_days: leaveGrant.statutory_days,
-          total_days: leaveGrant.total_days,
-          used_days: leaveGrant.used_days,
-          remaining_days: leaveGrant.remaining_days,
-        });
-
-        // 3. 사용자 정보와 연차 정보를 합쳐서 반환
         const serviceInfo = calculateServiceInfo(user.hire_date);
         const hireDateOnly = typeof user.hire_date === 'string' && user.hire_date.includes('T') ? user.hire_date.split('T')[0] : (user.hire_date || '');
 
@@ -52,7 +35,6 @@ export async function GET() {
           months_of_service: serviceInfo.months,
         });
       } catch (err: any) {
-        console.error(`[API] Failed for ${user.name}:`, err.message, err.stack);
         // 오류 발생 시 기본값으로 추가
         usersWithLeave.push({
           ...user,
@@ -67,10 +49,8 @@ export async function GET() {
       }
     }
 
-    console.log('[API] GET /api/users - SUCCESS, returning', usersWithLeave.length, 'users');
     return NextResponse.json(usersWithLeave);
   } catch (error: any) {
-    console.error('[API] GET /api/users - ERROR:', error.message, error.stack);
     return NextResponse.json({ error: error.message || '사용자 조회 실패' }, { status: 500 });
   }
 }

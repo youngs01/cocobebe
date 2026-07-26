@@ -5,6 +5,7 @@ import { getDefaultHolidayList } from './holidays';
 const connectionString = process.env.DATABASE_URL;
 
 let poolInstance: Pool | null = null;
+let schemaInitialized = false;
 
 function getPool() {
   if (!connectionString) {
@@ -15,7 +16,10 @@ function getPool() {
     poolInstance = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
-      connectionTimeoutMillis: 10000,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
+      max: 10,
+      statement_timeout: 30000,
     });
   }
 
@@ -23,10 +27,6 @@ function getPool() {
 }
 
 export const pool = getPool();
-
-function getCurrentYear() {
-  return new Date().getFullYear();
-}
 
 function normalizeDate(value: string | Date | null | undefined): Date | null {
   if (!value) return null;
@@ -185,114 +185,124 @@ export async function updateLeaveGrantBalance(userId: string, year: number, used
   return { ...grant, used_days: updatedUsed, remaining_days: updatedRemaining };
 }
 
-async function seedDefaultHolidays(activePool: Pool) {
-  const holidays = getDefaultHolidayList(new Date().getFullYear());
-
-  for (const holiday of holidays) {
-    await activePool.query(
-      `INSERT INTO holidays (date, title, is_public, source)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (date) DO NOTHING`,
-      [holiday.date, holiday.title, holiday.is_public, holiday.source]
-    );
-  }
-}
-
 export async function ensureDatabaseSchema() {
+  if (schemaInitialized) {
+    return;
+  }
+
   const activePool = getPool();
   if (!activePool) {
     return;
   }
 
-  await activePool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id VARCHAR(50) PRIMARY KEY,
-      login_id VARCHAR(50) UNIQUE,
-      password VARCHAR(100),
-      name VARCHAR(100) NOT NULL,
-      role VARCHAR(20) NOT NULL,
-      hire_date DATE NOT NULL,
-      department VARCHAR(50),
-      phone VARCHAR(30),
-      email VARCHAR(100),
-      status VARCHAR(20) DEFAULT 'active',
-      position VARCHAR(50),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  try {
+    // 모든 테이블을 한 번에 생성 (IF NOT EXISTS로 이미 존재하면 스킵)
+    await activePool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(50) PRIMARY KEY,
+        login_id VARCHAR(50) UNIQUE,
+        password VARCHAR(100),
+        name VARCHAR(100) NOT NULL,
+        role VARCHAR(20) NOT NULL,
+        hire_date DATE NOT NULL,
+        department VARCHAR(50),
+        phone VARCHAR(30),
+        email VARCHAR(100),
+        status VARCHAR(20) DEFAULT 'active',
+        position VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS leave_grants (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+        year INT NOT NULL,
+        statutory_days NUMERIC(4,1) NOT NULL,
+        bonus_days NUMERIC(4,1) DEFAULT 0,
+        total_days NUMERIC(4,1) NOT NULL,
+        used_days NUMERIC(4,1) DEFAULT 0,
+        pending_days NUMERIC(4,1) DEFAULT 0,
+        remaining_days NUMERIC(4,1) NOT NULL,
+        calculation_note TEXT,
+        UNIQUE(user_id, year)
+      );
+
+      CREATE TABLE IF NOT EXISTS leave_requests (
+        id VARCHAR(50) PRIMARY KEY,
+        user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+        leave_type VARCHAR(30) NOT NULL,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        requested_days NUMERIC(4,1) NOT NULL,
+        reason TEXT,
+        status VARCHAR(20) DEFAULT 'pending',
+        processed_by VARCHAR(50),
+        processed_at TIMESTAMP,
+        rejection_reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS holidays (
+        id SERIAL PRIMARY KEY,
+        date DATE UNIQUE NOT NULL,
+        title VARCHAR(100) NOT NULL,
+        is_public BOOLEAN DEFAULT true,
+        source VARCHAR(50) DEFAULT 'naver'
+      );
+
+      CREATE TABLE IF NOT EXISTS teacher_schedules (
+        id SERIAL PRIMARY KEY,
+        user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
+        date DATE NOT NULL,
+        shift_type VARCHAR(30) NOT NULL,
+        class_name VARCHAR(50),
+        note TEXT,
+        UNIQUE(user_id, date)
+      );
+    `);
+
+    // 관리자 계정 생성 (중복 방지)
+    await activePool.query(
+      `INSERT INTO users (id, login_id, password, name, role, hire_date, department, phone, email, status, position)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       ON CONFLICT (id) DO NOTHING`,
+      [
+        'usr-coco',
+        'coco',
+        'Dbsgofks03!',
+        '관리자',
+        'manager',
+        '2020-01-01',
+        '원장실/행정',
+        '010-0000-0000',
+        'coco@cocobebe.kr',
+        'active',
+        '원장'
+      ]
     );
 
-    CREATE TABLE IF NOT EXISTS leave_grants (
-      id SERIAL PRIMARY KEY,
-      user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
-      year INT NOT NULL,
-      statutory_days NUMERIC(4,1) NOT NULL,
-      bonus_days NUMERIC(4,1) DEFAULT 0,
-      total_days NUMERIC(4,1) NOT NULL,
-      used_days NUMERIC(4,1) DEFAULT 0,
-      pending_days NUMERIC(4,1) DEFAULT 0,
-      remaining_days NUMERIC(4,1) NOT NULL,
-      calculation_note TEXT,
-      UNIQUE(user_id, year)
-    );
+    // 공휴일 초기화
+    const holidays = getDefaultHolidayList(new Date().getFullYear());
+    for (const holiday of holidays) {
+      await activePool.query(
+        `INSERT INTO holidays (date, title, is_public, source)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (date) DO NOTHING`,
+        [holiday.date, holiday.title, holiday.is_public, holiday.source]
+      );
+    }
 
-    CREATE TABLE IF NOT EXISTS leave_requests (
-      id VARCHAR(50) PRIMARY KEY,
-      user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
-      leave_type VARCHAR(30) NOT NULL,
-      start_date DATE NOT NULL,
-      end_date DATE NOT NULL,
-      requested_days NUMERIC(4,1) NOT NULL,
-      reason TEXT,
-      status VARCHAR(20) DEFAULT 'pending',
-      processed_by VARCHAR(50),
-      processed_at TIMESTAMP,
-      rejection_reason TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    // 관리자 연차 초기화
+    const adminResult = await query(`SELECT id, hire_date FROM users WHERE id = $1`, ['usr-coco']);
+    if (adminResult.rows.length > 0) {
+      const currentYear = new Date().getFullYear();
+      await ensureLeaveGrantForUser('usr-coco', '2020-01-01', currentYear);
+    }
 
-    CREATE TABLE IF NOT EXISTS holidays (
-      id SERIAL PRIMARY KEY,
-      date DATE UNIQUE NOT NULL,
-      title VARCHAR(100) NOT NULL,
-      is_public BOOLEAN DEFAULT true,
-      source VARCHAR(50) DEFAULT 'naver'
-    );
-
-    CREATE TABLE IF NOT EXISTS teacher_schedules (
-      id SERIAL PRIMARY KEY,
-      user_id VARCHAR(50) REFERENCES users(id) ON DELETE CASCADE,
-      date DATE NOT NULL,
-      shift_type VARCHAR(30) NOT NULL,
-      class_name VARCHAR(50),
-      note TEXT,
-      UNIQUE(user_id, date)
-    );
-  `);
-
-  await activePool.query(
-    `INSERT INTO users (id, login_id, password, name, role, hire_date, department, phone, email, status, position)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     ON CONFLICT (id) DO NOTHING`,
-    [
-      'usr-coco',
-      'coco',
-      'Dbsgofks03!',
-      '관리자',
-      'manager',
-      '2020-01-01',
-      '원장실/행정',
-      '010-0000-0000',
-      'coco@cocobebe.kr',
-      'active',
-      '원장'
-    ]
-  );
-
-  await seedDefaultHolidays(activePool);
-
-  const currentYear = getCurrentYear();
-  const adminUser = await query(`SELECT id, hire_date FROM users WHERE id = $1`, ['usr-coco']);
-  if (adminUser.rows.length > 0) {
-    await ensureLeaveGrantForUser('usr-coco', '2020-01-01', currentYear);
+    schemaInitialized = true;
+  } catch (err: any) {
+    console.error('Database schema initialization error:', err.message);
+    throw err;
   }
 }
 
