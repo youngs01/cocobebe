@@ -38,33 +38,23 @@ export async function GET() {
     }
 
     const users = usersResult.rows.map((user: any) => {
-      const grants = grantsByUser.get(user.id) || [];
-      const latestGrant = grants[grants.length - 1] || null;
       const serviceInfo = calculateServiceInfo(user.hire_date);
       const { years, months } = calculateYearsOfService(user.hire_date);
       
-      // 0이나 null/undefined인 경우 모두 계산값으로 대체
-      const dbStatutoryDays = Number(latestGrant?.statutory_days ?? -1);
-      const statutoryDays = dbStatutoryDays > 0 ? dbStatutoryDays : serviceInfo.statutoryDays;
-      
-      const bonusDays = Number(latestGrant?.bonus_days ?? 0);
-      const dbTotalDays = Number(latestGrant?.total_days ?? -1);
-      const totalDays = dbTotalDays > 0 ? dbTotalDays : statutoryDays;
-      
+      const grants = grantsByUser.get(user.id) || [];
+      const latestGrant = grants[grants.length - 1] || null;
       const usedDays = Number(latestGrant?.used_days ?? 0);
       const pendingDays = Number(latestGrant?.pending_days ?? 0);
-      const dbRemainingDays = Number(latestGrant?.remaining_days ?? -1);
-      const remainingDays = dbRemainingDays >= 0 ? dbRemainingDays : Math.max(0, totalDays - usedDays - pendingDays);
 
       return {
         ...user,
-        statutory_days: Math.max(0, statutoryDays),
-        bonus_days: bonusDays,
-        total_days: Math.max(0, totalDays),
+        statutory_days: serviceInfo.statutoryDays,
+        bonus_days: 0,
+        total_days: serviceInfo.statutoryDays,
         used_days: usedDays,
         pending_days: pendingDays,
-        remaining_days: Math.max(0, remainingDays),
-        calculation_note: latestGrant?.calculation_note || `${serviceInfo.years}년 ${serviceInfo.months}개월 근속 기준`,
+        remaining_days: Math.max(0, serviceInfo.statutoryDays - usedDays - pendingDays),
+        calculation_note: `${serviceInfo.years}년 ${serviceInfo.months}개월 근속 → ${serviceInfo.statutoryDays}일`,
         years_of_service: years,
         months_of_service: months,
       };
