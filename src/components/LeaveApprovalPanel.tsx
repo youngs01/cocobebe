@@ -85,7 +85,7 @@ export const LeaveApprovalPanel: React.FC<LeaveApprovalPanelProps> = ({
             <h2 className="text-lg font-bold">어린이집 교사 연차 결재 & 승인 관리</h2>
           </div>
           <p className="text-xs text-[#E9EDC9] mt-1">
-            원장({currentUser.role === 'director' ? currentUser.name : ''}) 및 관리자 전용 • 승인 취소 시 남은 연차가 자동 복원됩니다.
+            원장({currentUser.role === 'director' ? currentUser.name : '박윤희'}) 및 관리자 전용 • 승인 취소 시 남은 연차가 자동 복원됩니다.
           </p>
         </div>
 
