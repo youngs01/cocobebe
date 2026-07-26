@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ensureDatabaseSchema, ensureLeaveGrantForUser, query } from '@/lib/db';
+import { ensureDatabaseSchema, ensureLeaveGrantForUser, query, calculateServiceInfo } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -35,8 +35,12 @@ export async function GET() {
         });
 
         // 3. 사용자 정보와 연차 정보를 합쳐서 반환
+        const serviceInfo = calculateServiceInfo(user.hire_date);
+        const hireDateOnly = typeof user.hire_date === 'string' && user.hire_date.includes('T') ? user.hire_date.split('T')[0] : (user.hire_date || '');
+
         usersWithLeave.push({
           ...user,
+          hire_date: hireDateOnly,
           statutory_days: Number(leaveGrant.statutory_days ?? 0),
           bonus_days: Number(leaveGrant.bonus_days ?? 0),
           total_days: Number(leaveGrant.total_days ?? 0),
@@ -44,6 +48,8 @@ export async function GET() {
           pending_days: Number(leaveGrant.pending_days ?? 0),
           remaining_days: Number(leaveGrant.remaining_days ?? 0),
           calculation_note: leaveGrant.calculation_note,
+          years_of_service: serviceInfo.years,
+          months_of_service: serviceInfo.months,
         });
       } catch (err: any) {
         console.error(`[API] Failed for ${user.name}:`, err.message, err.stack);

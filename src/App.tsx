@@ -36,6 +36,19 @@ export default function App() {
     try { return new Date(d as any).toISOString().split('T')[0]; } catch { return '' }
   };
 
+  const computeTenure = (hireDateRaw?: string | null) => {
+    if (!hireDateRaw) return { years: 0, months: 0 };
+    const datePart = typeof hireDateRaw === 'string' && hireDateRaw.includes('T') ? hireDateRaw.split('T')[0] : hireDateRaw;
+    const start = new Date(`${datePart}T00:00:00Z`);
+    const now = new Date();
+    let totalMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+    if (now.getDate() < start.getDate()) totalMonths -= 1;
+    totalMonths = Math.max(0, totalMonths);
+    const years = Math.floor(totalMonths / 12);
+    const months = totalMonths % 12;
+    return { years, months };
+  };
+
   // Fetch all data from Express PostgreSQL Backend
   const fetchData = async () => {
     try {
@@ -547,11 +560,17 @@ export default function App() {
                         </span>
                       </div>
                       <p className="text-xs text-[#718355] mt-1 flex items-center gap-2">
-                        <span>입사일: {currentUser.hire_date}</span>
+                        <span>입사일: {formatDate(currentUser.hire_date)}</span>
                         <span>•</span>
-                        <span className="text-[#344E41] font-semibold">
-                          근속 {currentUser.years_of_service > 0 ? `${currentUser.years_of_service}년차 (${currentUser.months_of_service}개월)` : `${currentUser.months_of_service}개월차`}
-                        </span>
+                        {(() => {
+                          const years = typeof currentUser.years_of_service === 'number' ? currentUser.years_of_service : computeTenure(currentUser.hire_date).years;
+                          const months = typeof currentUser.months_of_service === 'number' ? currentUser.months_of_service : computeTenure(currentUser.hire_date).months;
+                          return (
+                            <span className="text-[#344E41] font-semibold">
+                              근속 {years > 0 ? `${years}년차 (${months}개월)` : `${months}개월차`}
+                            </span>
+                          );
+                        })()}
                       </p>
                     </div>
                   </div>
